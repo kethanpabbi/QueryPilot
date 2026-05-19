@@ -71,8 +71,45 @@ uvicorn main:app --reload
 
 ---
 
-### Phase 2 — Core SQL Agent (upcoming)
-LangGraph graph: `generate_sql` → `validate_sql` → `execute_sql`
+### Phase 2 — Core SQL Agent ✅
+**Goal:** LangGraph agent that takes a natural language question and returns SQL + results.
+
+**Files added:**
+- `backend/app/agent/prompts.py` — System prompt template with schema context injection
+- `backend/app/agent/llm.py` — Provider-agnostic wrapper: same interface for Claude and OpenAI
+- `backend/app/agent/graph.py` — LangGraph StateGraph with 3 nodes + `run_query()` entry point
+- `backend/app/api/query.py` — `POST /query` route
+
+**Graph flow:**
+```
+START → generate_sql → validate_sql → execute_sql → END
+```
+
+**Key decisions:**
+- `AgentState` is a TypedDict that flows through all nodes — each node reads what it needs and returns only the fields it updates
+- `validate_sql` is a passthrough stub here — Phase 3 replaces it with full SQLGlot AST validation
+- `call_llm()` in `llm.py` is the single swap point for providers — pass `model="claude"` or `model="openai"`
+- Claude uses `claude-sonnet-4-6`, OpenAI uses `gpt-4o`
+- The LLM is instructed to return raw SQL only; the node also strips markdown fences if the model wraps it anyway
+
+**API:**
+```
+POST /query
+{
+  "question": "What is the average fare amount?",
+  "dataset": "nyc_taxi",
+  "model": "claude"
+}
+```
+Returns: `sql`, `rows`, `row_count`, `error`
+
+**How to test Phase 2:**
+```bash
+# Server must be running with your API key in .env
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the average fare amount?", "dataset": "nyc_taxi", "model": "claude"}'
+```
 
 ### Phase 3 — Guardrails (upcoming)
 SQLGlot AST: block DDL/DML, enforce LIMIT 500, scope tables to active dataset.
