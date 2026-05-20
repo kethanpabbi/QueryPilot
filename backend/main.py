@@ -8,6 +8,7 @@ load_dotenv()
 
 from app.data.schema import inspect, schema_to_prompt_context
 from app.api.query import router as query_router
+from app.api.explain import router as explain_router
 
 app = FastAPI(title="QueryPilot", version="0.1.0")
 
@@ -20,6 +21,7 @@ app.add_middleware(
 
 
 app.include_router(query_router)
+app.include_router(explain_router)
 
 
 @app.get("/health")
