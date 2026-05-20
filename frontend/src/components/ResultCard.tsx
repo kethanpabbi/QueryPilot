@@ -9,6 +9,19 @@ interface Props {
   onFollowUp: (q: string) => void;
 }
 
+/**
+ * LLMs (especially OpenAI) sometimes stream bold markers with spaces:
+ * "** 15.57 **" — CommonMark treats this as NOT bold (space after opening **).
+ * Normalize by collapsing spaces immediately inside ** and * markers.
+ */
+function normalizeMarkdown(text: string): string {
+  return text
+    .replace(/\*\*\s+/g, "**")   // "** word" → "**word"
+    .replace(/\s+\*\*/g, "**")   // "word **" → "word**"
+    .replace(/\*\s+/g, "*")      // "* word"  → "*word"
+    .replace(/\s+\*/g, "*");     // "word *"  → "word*"
+}
+
 export default function ResultCard({ message, onFollowUp }: Props) {
   const [showSql, setShowSql] = useState(false);
   const { result, explanation, followUps, loading, explaining } = message;
@@ -88,7 +101,7 @@ export default function ResultCard({ message, onFollowUp }: Props) {
                     <div className="prose prose-invert prose-sm max-w-none
                       prose-strong:text-white prose-code:text-emerald-300 prose-code:bg-white/10
                       prose-code:px-1 prose-code:rounded prose-p:my-0">
-                      <ReactMarkdown>{explanation}</ReactMarkdown>
+                      <ReactMarkdown>{normalizeMarkdown(explanation)}</ReactMarkdown>
                     </div>
                   )}
                 </div>
