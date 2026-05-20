@@ -92,8 +92,8 @@ cp .env.example .env
 make dev
 # Running at http://localhost:8000
 
-# Or without make:
-uvicorn main:app --reload --reload-dir app
+# Or directly:
+uvicorn main:app
 ```
 
 ### Frontend
