@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import type { Message } from "../lib/types";
 import GuardrailBadge from "./GuardrailBadge";
 import ResultsTable from "./ResultsTable";
@@ -75,12 +76,14 @@ export default function ResultCard({ message, onFollowUp }: Props) {
             {(explaining || explanation) && (
               <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
                 <p className="text-xs text-violet-400 font-medium mb-1">💡 Explanation</p>
-                <p className="text-sm text-white/80 leading-relaxed break-words whitespace-pre-wrap">
-                  {explanation}
+                <div className="text-sm text-white/80 leading-relaxed prose prose-invert prose-sm max-w-none
+                  prose-strong:text-white prose-code:text-emerald-300 prose-code:bg-white/10
+                  prose-code:px-1 prose-code:rounded prose-p:my-0">
+                  <ReactMarkdown>{explanation}</ReactMarkdown>
                   {explaining && (
                     <span className="inline-block w-0.5 h-3.5 bg-violet-400 ml-0.5 animate-pulse align-middle" />
                   )}
-                </p>
+                </div>
               </div>
             )}
 
