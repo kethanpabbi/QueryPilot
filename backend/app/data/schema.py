@@ -1,6 +1,9 @@
 """
 SchemaInspector — extracts table structure and sample rows, then renders
 them as a plain-text string that gets injected into every LLM prompt.
+
+Schema is cached in memory after the first successful load so the remote
+Parquet/CSV URL is only fetched once per server session.
 """
 
 from __future__ import annotations
@@ -22,8 +25,17 @@ class TableInfo:
     sample_rows: list[dict] = field(default_factory=list)
 
 
+# In-memory cache: populated on first inspect() call per dataset
+_schema_cache: dict[str, list[TableInfo]] = {}
+_context_cache: dict[str, str] = {}
+
+
 def inspect(dataset: str) -> list[TableInfo]:
-    """Return full schema + 3 sample rows for every table in the dataset."""
+    """Return full schema + 3 sample rows for every table in the dataset.
+    Result is cached — remote file is only fetched once per server session."""
+    if dataset in _schema_cache:
+        return _schema_cache[dataset]
+
     ensure_loaded(dataset)
     conn = get_connection()
     result: list[TableInfo] = []
@@ -38,19 +50,18 @@ def inspect(dataset: str) -> list[TableInfo]:
 
         result.append(TableInfo(name=view_name, columns=columns, sample_rows=sample_rows))
 
+    _schema_cache[dataset] = result
     return result
 
 
 def schema_to_prompt_context(dataset: str) -> str:
     """
     Render schema + samples as a compact string for LLM injection.
-
-    Example output:
-        Table: nyc_taxi
-        Columns: VendorID (BIGINT), tpep_pickup_datetime (TIMESTAMP), ...
-        Sample rows (first 2):
-        [{"VendorID": 1, ...}, ...]
+    Cached after first call — no repeated remote fetches.
     """
+    if dataset in _context_cache:
+        return _context_cache[dataset]
+
     tables = inspect(dataset)
     parts: list[str] = []
 
@@ -63,7 +74,9 @@ def schema_to_prompt_context(dataset: str) -> str:
             f"Sample rows (first 2):\n{sample_str}"
         )
 
-    return "\n\n---\n\n".join(parts)
+    context = "\n\n---\n\n".join(parts)
+    _context_cache[dataset] = context
+    return context
 
 
 def get_valid_tables(dataset: str) -> list[str]:
