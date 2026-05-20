@@ -58,11 +58,11 @@ def validate(sql: str, dataset: str) -> ValidationResult:
     # ── 1. Parse ────────────────────────────────────────────────────────────
     try:
         parsed = sqlglot.parse_one(sql, dialect="duckdb")
-    except sqlglot.errors.ParseError as e:
+    except (sqlglot.errors.ParseError, sqlglot.errors.TokenError) as e:
         return ValidationResult(
             valid=False,
             sql=sql,
-            error=f"SQL could not be parsed: {e}",
+            error="The model returned a response that isn't valid SQL. Try rephrasing your question.",
             error_code="PARSE_ERROR",
         )
 

@@ -99,14 +99,22 @@ async def get_followups(
     else:
         raw = await _call_openai_once(FOLLOWUP_SYSTEM, content)
 
+    # Strip markdown code fences if the model wrapped the JSON (e.g. ```json [...] ```)
+    cleaned = raw.strip()
+    if cleaned.startswith("```"):
+        lines = cleaned.splitlines()
+        cleaned = "\n".join(
+            line for line in lines if not line.strip().startswith("```")
+        ).strip()
+
     try:
-        questions = json.loads(raw)
-        if isinstance(questions, list):
+        questions = json.loads(cleaned)
+        if isinstance(questions, list) and questions:
             return [str(q) for q in questions[:3]]
     except json.JSONDecodeError:
         pass
 
-    # Fallback if the model didn't return clean JSON
+    # Fallback if the model still didn't return clean JSON
     return [
         "What trends do you see over time?",
         "How does this compare across different groups?",
