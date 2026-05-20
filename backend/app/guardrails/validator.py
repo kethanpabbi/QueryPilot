@@ -13,6 +13,7 @@ structured error if any check fails.
 
 from __future__ import annotations
 from dataclasses import dataclass
+import re
 import sqlglot
 import sqlglot.expressions as exp
 
@@ -55,10 +56,33 @@ def validate(sql: str, dataset: str) -> ValidationResult:
             error_code="EMPTY_SQL",
         )
 
+    # ── 0.5. Unanswerable sentinel ───────────────────────────────────────────
+    if re.match(r"^--\s*UNANSWERABLE", sql.strip(), re.IGNORECASE):
+        reason = re.sub(r"^--\s*UNANSWERABLE\s*:?\s*", "", sql.strip(), flags=re.IGNORECASE).strip()
+        return ValidationResult(
+            valid=False,
+            sql=sql,
+            error=reason or "This question can't be answered with the available dataset.",
+            error_code="UNANSWERABLE",
+        )
+
     # ── 1. Parse ────────────────────────────────────────────────────────────
     try:
         parsed = sqlglot.parse_one(sql, dialect="duckdb")
     except (sqlglot.errors.ParseError, sqlglot.errors.TokenError) as e:
+        # Distinguish "model returned prose" from "model wrote malformed SQL"
+        SQL_STARTERS = {
+            "SELECT", "WITH", "INSERT", "UPDATE", "DELETE", "CREATE", "DROP",
+            "ALTER", "TRUNCATE", "VALUES", "EXPLAIN", "SHOW", "--", "(",
+        }
+        first_token = sql.strip().split()[0].upper() if sql.strip() else ""
+        if first_token not in SQL_STARTERS:
+            return ValidationResult(
+                valid=False,
+                sql=sql,
+                error="This question can't be answered with the available dataset. The schema may not contain the data needed.",
+                error_code="UNANSWERABLE",
+            )
         return ValidationResult(
             valid=False,
             sql=sql,
@@ -82,8 +106,6 @@ def validate(sql: str, dataset: str) -> ValidationResult:
     # Also catch blocked keywords in case of nested / unusual AST shapes
     sql_upper = sql.upper()
     for keyword in BLOCKED_NAMES:
-        # Simple word-boundary check to avoid false positives on column names
-        import re
         if re.search(rf"\b{keyword}\b", sql_upper):
             return ValidationResult(
                 valid=False,

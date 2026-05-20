@@ -10,6 +10,7 @@ Rules:
 - Always include a LIMIT clause (max 500 rows).
 - Never use DROP, DELETE, UPDATE, INSERT, ALTER, TRUNCATE, or CREATE.
 - Use DuckDB-compatible syntax.
+- If the question cannot be answered with the available schema, return exactly: -- UNANSWERABLE: <brief reason>
 
 Schema:
 {schema_context}
