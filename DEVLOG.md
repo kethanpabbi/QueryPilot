@@ -150,8 +150,52 @@ curl -X POST http://localhost:8000/query \
   -d '{"question": "show me all trips", "dataset": "nyc_taxi", "model": "claude"}'
 ```
 
-### Phase 4 — Result Explanation (upcoming)
-Second LLM call post-execution, SSE streaming, follow-up question suggestions.
+### Phase 4 — Result Explanation ✅
+**Goal:** After SQL execution, stream a plain-English explanation of the results and suggest 3 follow-up questions.
+
+**Files added:**
+- `backend/app/agent/explainer.py` — async streaming explanation + follow-up question generator
+- `backend/app/api/explain.py` — `POST /explain` SSE endpoint
+
+**Flow:**
+```
+POST /explain (question + sql + rows + model)
+    ↓
+stream_explanation() → yields tokens one by one  →  event: token
+    ↓
+get_followups()      → returns ["q1","q2","q3"]  →  event: follow_ups
+    ↓
+                                                     event: done
+```
+
+**SSE event types the frontend listens for:**
+| Event | Data | When |
+|---|---|---|
+| `token` | text chunk (string) | Streamed continuously during explanation |
+| `follow_ups` | JSON array of 3 strings | Once, after explanation finishes |
+| `error` | error message | If anything throws |
+| `done` | `""` | Stream is complete |
+
+**Key decisions:**
+- `POST /query` stays synchronous (fast) — returns sql + rows immediately
+- `POST /explain` is a separate SSE call — frontend opens it after receiving query results
+- Both Claude and OpenAI use their **async** clients (`AsyncAnthropic`, `AsyncOpenAI`) so the stream doesn't block the server
+- Follow-ups are a second non-streaming LLM call; the model is prompted to return a JSON array. A hardcoded fallback handles malformed responses.
+
+**How to test Phase 4:**
+```bash
+# First get some rows from /query, then pipe them to /explain
+curl -X POST http://localhost:8000/explain \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "question": "What is the average fare amount?",
+    "sql": "SELECT AVG(fare_amount) FROM nyc_taxi LIMIT 500",
+    "rows": [{"avg(fare_amount)": 18.5}],
+    "model": "claude"
+  }'
+# You should see token events streaming in, then a follow_ups event, then done
+```
 
 ### Phase 5 — Chat UI (upcoming)
 React chat interface with dataset/model pickers, SQL toggle, guardrail badges.
