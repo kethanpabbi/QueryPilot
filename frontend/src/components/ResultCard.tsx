@@ -10,16 +10,16 @@ interface Props {
 }
 
 /**
- * LLMs (especially OpenAI) sometimes stream bold markers with spaces:
- * "** 15.57 **" — CommonMark treats this as NOT bold (space after opening **).
- * Normalize by collapsing spaces immediately inside ** and * markers.
+ * OpenAI sometimes streams bold markers with a space inside the delimiter:
+ * "** word **" — CommonMark requires no space after opening **, so this
+ * doesn't render as bold. Fix only the ** case; single-* (italic) patterns
+ * are left alone because stripping spaces around * removes the whitespace
+ * that CommonMark requires before an opening delimiter.
  */
 function normalizeMarkdown(text: string): string {
   return text
     .replace(/\*\*\s+/g, "**")   // "** word" → "**word"
-    .replace(/\s+\*\*/g, "**")   // "word **" → "word**"
-    .replace(/\*\s+/g, "*")      // "* word"  → "*word"
-    .replace(/\s+\*/g, "*");     // "word *"  → "word*"
+    .replace(/\s+\*\*/g, "**");  // "word **" → "word**"
 }
 
 export default function ResultCard({ message, onFollowUp }: Props) {
@@ -99,7 +99,9 @@ export default function ResultCard({ message, onFollowUp }: Props) {
                   ) : (
                     // Full markdown render once streaming is done
                     <div className="prose prose-invert prose-sm max-w-none
-                      prose-strong:text-white prose-code:text-emerald-300 prose-code:bg-white/10
+                      prose-strong:text-white prose-strong:font-semibold
+                      prose-em:text-white/90 prose-em:italic
+                      prose-code:text-emerald-300 prose-code:bg-white/10
                       prose-code:px-1 prose-code:rounded prose-p:my-0">
                       <ReactMarkdown>{normalizeMarkdown(explanation)}</ReactMarkdown>
                     </div>
