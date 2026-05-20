@@ -89,8 +89,11 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your API keys to .env
 
-uvicorn main:app --reload
+make dev
 # Running at http://localhost:8000
+
+# Or without make:
+uvicorn main:app --reload --reload-dir app
 ```
 
 ### Frontend
