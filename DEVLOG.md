@@ -197,8 +197,37 @@ curl -X POST http://localhost:8000/explain \
 # You should see token events streaming in, then a follow_ups event, then done
 ```
 
-### Phase 5 — Chat UI (upcoming)
-React chat interface with dataset/model pickers, SQL toggle, guardrail badges.
+### Phase 5 — Chat UI ✅
+**Goal:** React chat interface wired to the backend, with streaming explanation, guardrail badges, and example prompt chips.
+
+**Stack:** React + Vite + TypeScript + Tailwind CSS
+
+**Files added:**
+- `frontend/src/lib/types.ts` — shared TypeScript types (Dataset, Model, Message, QueryResponse)
+- `frontend/src/lib/api.ts` — `runQuery()` and `streamExplanation()` fetch wrappers
+- `frontend/src/components/TopBar.tsx` — dataset + model pickers
+- `frontend/src/components/ExampleChips.tsx` — clickable prompt examples, changes per dataset
+- `frontend/src/components/ResultCard.tsx` — SQL toggle, results table, streaming explanation, follow-up chips
+- `frontend/src/components/ResultsTable.tsx` — sortable data table
+- `frontend/src/components/GuardrailBadge.tsx` — red badge for blocked queries
+- `frontend/src/components/InputBar.tsx` — textarea input, Enter to send
+- `frontend/src/App.tsx` — root: state, message thread, orchestrates query + stream
+
+**Key decisions:**
+- SSE from a POST endpoint can't use the native `EventSource` API (GET only). Uses `fetch` + `ReadableStream` instead, manually parsing `event:` / `data:` lines.
+- Explanation only streams if the query returned actual rows — no point explaining an error or empty result.
+- Switching dataset clears the message thread (fresh context).
+- `VITE_API_URL` env var controls the backend URL — defaults to `http://localhost:8000` for local dev.
+
+**How to run locally:**
+```bash
+# Terminal 1 — backend
+cd backend && source .venv/bin/activate && uvicorn main:app --reload
+
+# Terminal 2 — frontend
+cd frontend && npm run dev
+# Open http://localhost:5173
+```
 
 ### Phase 6 — Deploy (upcoming)
 Railway Dockerfile + Vercel config, example prompt chips, README.
