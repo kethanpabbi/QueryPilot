@@ -57,7 +57,7 @@ async def stream_explanation(
 async def _stream_claude(system: str, content: str) -> AsyncGenerator[str, None]:
     client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     async with client.messages.stream(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=512,
         system=system,
         messages=[{"role": "user", "content": content}],
@@ -69,7 +69,7 @@ async def _stream_claude(system: str, content: str) -> AsyncGenerator[str, None]
 async def _stream_openai(system: str, content: str) -> AsyncGenerator[str, None]:
     client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     stream = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         max_tokens=512,
         messages=[
             {"role": "system", "content": system},
@@ -117,7 +117,7 @@ async def get_followups(
 async def _call_claude_once(system: str, content: str) -> str:
     client = anthropic.AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     response = await client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=256,
         system=system,
         messages=[{"role": "user", "content": content}],
@@ -128,7 +128,7 @@ async def _call_claude_once(system: str, content: str) -> str:
 async def _call_openai_once(system: str, content: str) -> str:
     client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     response = await client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         max_tokens=256,
         messages=[
             {"role": "system", "content": system},

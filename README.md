@@ -25,7 +25,7 @@ QueryPilot is a natural-language-to-SQL agent that lets you query real datasets 
 | Backend | FastAPI + LangGraph |
 | SQL Engine | DuckDB (in-process, no server) |
 | SQL Validation | SQLGlot (AST-based) |
-| LLMs | Claude `claude-sonnet-4-6` + OpenAI `gpt-4o` |
+| LLMs | Claude `claude-haiku-4-5-20251001` + OpenAI `gpt-4o-mini` |
 | Deploy | Vercel (frontend) + Railway (backend) |
 
 ---

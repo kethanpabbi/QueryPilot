@@ -37,7 +37,7 @@ def call_llm(
 def _call_claude(system: str, messages: list[dict]) -> str:
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     response = client.messages.create(
-        model="claude-sonnet-4-6",
+        model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         system=system,
         messages=messages,
@@ -49,7 +49,7 @@ def _call_openai(system: str, messages: list[dict]) -> str:
     client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     full_messages = [{"role": "system", "content": system}] + messages
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=full_messages,
         max_tokens=1024,
     )
