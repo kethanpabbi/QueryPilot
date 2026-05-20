@@ -111,8 +111,44 @@ curl -X POST http://localhost:8000/query \
   -d '{"question": "What is the average fare amount?", "dataset": "nyc_taxi", "model": "claude"}'
 ```
 
-### Phase 3 — Guardrails (upcoming)
-SQLGlot AST: block DDL/DML, enforce LIMIT 500, scope tables to active dataset.
+### Phase 3 — Guardrails ✅
+**Goal:** Validate every generated SQL query with SQLGlot AST parsing before it touches DuckDB.
+
+**Files added:**
+- `backend/app/guardrails/validator.py` — three-layer validation pipeline
+
+**Three checks (run in order):**
+
+| Check | What it does | Error code |
+|---|---|---|
+| Blocked statements | Rejects DROP, DELETE, INSERT, UPDATE, CREATE, ALTER, TRUNCATE | `BLOCKED_STATEMENT` |
+| Table scope | Rejects tables not in the active dataset | `INVALID_TABLE` |
+| LIMIT enforcer | Injects `LIMIT 500` if no LIMIT is present | — (silent fix) |
+
+**Key decisions:**
+- Uses SQLGlot's real AST (`parse_one`) — not regex — so it catches nested/complex cases correctly
+- LIMIT is injected by modifying the AST and re-rendering to DuckDB dialect, not string concatenation
+- `error_code` is a machine-readable string (`BLOCKED_STATEMENT`, `INVALID_TABLE`, `PARSE_ERROR`) — used in Phase 5 to render the right UI badge
+- `validate_sql` node in the graph now calls `validator.validate()` instead of being a passthrough stub
+- `error_code` flows through `AgentState` and is returned in `POST /query` response
+
+**How to test Phase 3:**
+```bash
+# Should be blocked (DROP)
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "drop the nyc_taxi table", "dataset": "nyc_taxi", "model": "claude"}'
+
+# Should be blocked (wrong table)
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "select * from orders", "dataset": "nyc_taxi", "model": "claude"}'
+
+# Should pass and have LIMIT 500 injected automatically
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "show me all trips", "dataset": "nyc_taxi", "model": "claude"}'
+```
 
 ### Phase 4 — Result Explanation (upcoming)
 Second LLM call post-execution, SSE streaming, follow-up question suggestions.

@@ -19,6 +19,7 @@ class QueryResponse(BaseModel):
     rows: list[dict]
     row_count: int
     error: str | None
+    error_code: str | None  # BLOCKED_STATEMENT | INVALID_TABLE | PARSE_ERROR | None
 
 
 @router.post("/query", response_model=QueryResponse)
@@ -40,4 +41,5 @@ def query(req: QueryRequest):
         rows=result["rows"],
         row_count=result["row_count"],
         error=result["error"],
+        error_code=result.get("error_code"),
     )
