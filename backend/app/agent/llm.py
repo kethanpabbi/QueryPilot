@@ -51,6 +51,6 @@ def _call_openai(system: str, messages: list[dict]) -> str:
     response = client.chat.completions.create(
         model="gpt-5-nano",
         messages=full_messages,
-        max_tokens=1024,
+        max_completion_tokens=1024,
     )
     return response.choices[0].message.content.strip()
