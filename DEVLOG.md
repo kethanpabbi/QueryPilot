@@ -229,5 +229,42 @@ cd frontend && npm run dev
 # Open http://localhost:5173
 ```
 
-### Phase 6 — Deploy (upcoming)
-Railway Dockerfile + Vercel config, example prompt chips, README.
+### Phase 6 — Polish: Error UX + Markdown Rendering ✅
+**Goal:** Fix two user-facing bugs surfaced during real query testing.
+
+#### Bug 1 — Misleading "Parse Error" on unanswerable questions
+
+When a question requires data not in the schema (e.g. "What are the names of these pickup locations?" against a dataset with only numeric IDs), the model returns prose instead of SQL. This hit the SQLGlot parse step and showed a red "🚫 Parse Error" badge — confusing because no SQL was malformed.
+
+**Fix:**
+- System prompt now instructs the model: if the question can't be answered with the available schema, return exactly `-- UNANSWERABLE: <brief reason>`
+- `validator.py` detects the sentinel first (step 0.5), extracts the reason, and returns `error_code="UNANSWERABLE"`
+- Fallback: if the model ignores the instruction and returns prose anyway, the parse-error catch checks the first token — if it's not a SQL keyword, it's treated as `UNANSWERABLE` rather than `PARSE_ERROR`
+- New `EMPTY_SQL` error code was already in the validator; now surfaced in the badge too
+
+**GuardrailBadge now has two visual tiers:**
+
+| Error code | Color | Icon | Meaning |
+|---|---|---|---|
+| `BLOCKED_STATEMENT`, `INVALID_TABLE`, `PARSE_ERROR` | Red | 🚫 | Guardrail violation / malformed SQL |
+| `UNANSWERABLE`, `EMPTY_SQL` | Amber | ℹ️ | Data not available in schema |
+
+**Files changed:** `backend/app/agent/prompts.py`, `backend/app/guardrails/validator.py`, `frontend/src/components/GuardrailBadge.tsx`
+
+---
+
+#### Bug 2 — Italic text not rendering in explanations
+
+`normalizeMarkdown` had four regex patterns meant to fix an OpenAI streaming artifact (`"** word **"` → `"**word**"`). The two single-`*` patterns were too aggressive:
+
+- `/\s+\*/g` removed the space before an opening `*` — e.g. `"text *italic*"` → `"text*italic*"`
+- CommonMark requires whitespace before a left-flanking `*` delimiter, so stripping it prevented italic from rendering entirely
+
+**Fix:** Removed the single-`*` patterns. Only the `**` patterns are kept (they fix the confirmed OpenAI bold artifact without side effects). Also added explicit `prose-em` and `prose-strong` Tailwind classes so bold/italic are visually distinct on the dark background.
+
+**Files changed:** `frontend/src/components/ResultCard.tsx`
+
+---
+
+### Phase 7 — Deploy (upcoming)
+Railway Dockerfile + Vercel config, README.
