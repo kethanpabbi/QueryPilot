@@ -15,6 +15,7 @@ from app.data.schema import schema_to_prompt_context
 from app.data.loader import get_connection
 from app.agent.llm import call_llm
 from app.agent.prompts import SYSTEM_PROMPT, build_user_message
+from app.guardrails.validator import validate
 
 
 # ── State ────────────────────────────────────────────────────────────────────
@@ -26,6 +27,7 @@ class AgentState(TypedDict):
     schema_context: str
     sql: str
     validation_error: str | None
+    error_code: str | None  # BLOCKED_STATEMENT | INVALID_TABLE | PARSE_ERROR | None
     rows: list[dict]
     row_count: int
     error: str | None
@@ -55,10 +57,22 @@ def generate_sql(state: AgentState) -> dict:
 
 def validate_sql(state: AgentState) -> dict:
     """
-    Stub for now — Phase 3 replaces this with full SQLGlot AST validation.
-    Returns validation_error=None (pass) so execution always proceeds here.
+    Run SQLGlot AST guardrails against the generated SQL.
+    - Blocks DDL/DML statements
+    - Rejects out-of-scope tables
+    - Injects LIMIT 500 if missing
     """
-    return {"validation_error": None}
+    result = validate(sql=state["sql"], dataset=state["dataset"])
+
+    if not result.valid:
+        return {
+            "validation_error": result.error,
+            "error_code": result.error_code,
+            "sql": state["sql"],   # preserve original for display
+        }
+
+    # result.sql may have LIMIT injected — update state with cleaned SQL
+    return {"validation_error": None, "error_code": None, "sql": result.sql}
 
 
 def execute_sql(state: AgentState) -> dict:
@@ -107,6 +121,7 @@ def run_query(question: str, dataset: str, model: str) -> dict:
         "schema_context": schema_context,
         "sql": "",
         "validation_error": None,
+        "error_code": None,
         "rows": [],
         "row_count": 0,
         "error": None,
