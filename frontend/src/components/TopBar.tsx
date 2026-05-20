@@ -14,7 +14,7 @@ const DATASETS: { value: Dataset; label: string }[] = [
 
 const MODELS: { value: Model; label: string }[] = [
   { value: "claude", label: "Claude" },
-  { value: "openai", label: "GPT-4o" },
+  { value: "openai", label: "OpenAI" },
 ];
 
 export default function TopBar({ dataset, model, onDatasetChange, onModelChange }: Props) {

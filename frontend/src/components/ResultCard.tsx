@@ -75,7 +75,7 @@ export default function ResultCard({ message, onFollowUp }: Props) {
             {(explaining || explanation) && (
               <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
                 <p className="text-xs text-violet-400 font-medium mb-1">💡 Explanation</p>
-                <p className="text-sm text-white/80 leading-relaxed">
+                <p className="text-sm text-white/80 leading-relaxed break-words whitespace-pre-wrap">
                   {explanation}
                   {explaining && (
                     <span className="inline-block w-0.5 h-3.5 bg-violet-400 ml-0.5 animate-pulse align-middle" />

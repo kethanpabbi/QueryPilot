@@ -63,7 +63,9 @@ export async function streamExplanation(
       if (line.startsWith("event:")) {
         currentEvent = line.slice(6).trim();
       } else if (line.startsWith("data:")) {
-        const data = line.slice(5).trim();
+        // Strip only the "data:" prefix + one optional space — do NOT trim the
+        // rest, as leading spaces are part of the streamed token content.
+        const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
         if (currentEvent === "token") {
           onToken(data);
         } else if (currentEvent === "follow_ups") {
