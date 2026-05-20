@@ -46,6 +46,15 @@ class ValidationResult:
 def validate(sql: str, dataset: str) -> ValidationResult:
     """Run all guardrails. Returns on the first failure."""
 
+    # ── 0. Empty SQL guard ───────────────────────────────────────────────────
+    if not sql or not sql.strip():
+        return ValidationResult(
+            valid=False,
+            sql=sql,
+            error="The model did not return a SQL query. Please rephrase your question.",
+            error_code="EMPTY_SQL",
+        )
+
     # ── 1. Parse ────────────────────────────────────────────────────────────
     try:
         parsed = sqlglot.parse_one(sql, dialect="duckdb")
