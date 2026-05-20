@@ -69,7 +69,7 @@ async def _stream_claude(system: str, content: str) -> AsyncGenerator[str, None]
 async def _stream_openai(system: str, content: str) -> AsyncGenerator[str, None]:
     client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     stream = await client.chat.completions.create(
-        model="gpt-5-nano",
+        model="gpt-5.4-mini",
         max_completion_tokens=512,
         messages=[
             {"role": "system", "content": system},
@@ -128,7 +128,7 @@ async def _call_claude_once(system: str, content: str) -> str:
 async def _call_openai_once(system: str, content: str) -> str:
     client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"])
     response = await client.chat.completions.create(
-        model="gpt-5-nano",
+        model="gpt-5.4-mini",
         max_completion_tokens=256,
         messages=[
             {"role": "system", "content": system},

@@ -49,7 +49,7 @@ def _call_openai(system: str, messages: list[dict]) -> str:
     client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     full_messages = [{"role": "system", "content": system}] + messages
     response = client.chat.completions.create(
-        model="gpt-5-nano",
+        model="gpt-5.4-mini",
         messages=full_messages,
         max_completion_tokens=1024,
     )
