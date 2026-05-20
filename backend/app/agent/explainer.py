@@ -16,8 +16,7 @@ import openai
 
 EXPLAIN_SYSTEM = """You are a friendly data analyst explaining query results to a non-technical user.
 You will be given a SQL query and its results. Write a clear 2-sentence explanation of what the results show.
-Be specific — mention actual numbers or patterns from the data. Do not use jargon.
-Do not use any markdown formatting such as **bold**, *italic*, or backticks. Plain text only."""
+Be specific — mention actual numbers or patterns from the data. Do not use jargon."""
 
 FOLLOWUP_SYSTEM = """You are a data analyst helping users explore a dataset.
 Given a question and its SQL results, suggest exactly 3 short follow-up questions the user might want to ask next.
