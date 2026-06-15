@@ -93,7 +93,7 @@ export default function ResultCard({ message, onFollowUp }: Props) {
       {/* Assistant response zone */}
       <div className="max-w-full flex flex-col gap-4 border-l-2 border-white/5 pl-4 sm:pl-5">
         {/* Agent header tag */}
-        <div className="flex items-center gap-1.5 text-xs text-white/40 font-semibold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-[10px] text-white/40 font-bold uppercase tracking-wider font-heading">
           <Terminal className="w-3.5 h-3.5 text-violet-400" />
           <span>QueryPilot Response</span>
         </div>
@@ -172,31 +172,31 @@ export default function ResultCard({ message, onFollowUp }: Props) {
             {/* Explanation card */}
             {(explaining || explanation) && (
               <div className="rounded-xl border border-violet-500/15 bg-violet-500/5 px-5 py-4 shadow-md shadow-violet-500/5 flex flex-col gap-2">
-                <div className="flex items-center gap-1.5 text-xs text-violet-400 font-bold uppercase tracking-wider select-none">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>AI Explanation</span>
-                </div>
-                <div className="text-sm text-white/85 leading-relaxed select-text">
-                  <div className="prose prose-invert prose-sm max-w-none
-                    prose-strong:text-white prose-strong:font-semibold
-                    prose-em:text-white/95 prose-em:italic
-                    prose-code:text-emerald-300 prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-                    prose-p:my-2 prose-p:leading-relaxed
-                    prose-ul:list-disc prose-ul:pl-5 prose-ul:my-2
-                    prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-2
-                    prose-li:my-1">
-                    <ReactMarkdown>
-                      {normalizeMarkdown(explanation) + (explaining ? " █" : "")}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Follow-up chips */}
-            {followUps.length > 0 && (
-              <div className="flex flex-col gap-2.5 mt-1 select-none">
-                <p className="text-[10px] text-white/30 font-semibold uppercase tracking-wider">Suggested Queries</p>
+                 <div className="flex items-center gap-1.5 text-xs text-violet-400 font-extrabold uppercase tracking-wider select-none font-heading">
+                   <Sparkles className="w-3.5 h-3.5" />
+                   <span>AI Explanation</span>
+                 </div>
+                 <div className="text-sm text-white/85 leading-relaxed select-text">
+                   <div className="prose prose-invert prose-sm max-w-none
+                     prose-strong:text-white prose-strong:font-semibold
+                     prose-em:text-white/95 prose-em:italic
+                     prose-code:text-emerald-300 prose-code:bg-white/10 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+                     prose-p:my-2 prose-p:leading-relaxed
+                     prose-ul:list-disc prose-ul:pl-5 prose-ul:my-2
+                     prose-ol:list-decimal prose-ol:pl-5 prose-ol:my-2
+                     prose-li:my-1">
+                     <ReactMarkdown>
+                       {normalizeMarkdown(explanation) + (explaining ? " █" : "")}
+                     </ReactMarkdown>
+                   </div>
+                 </div>
+               </div>
+             )}
+ 
+             {/* Follow-up chips */}
+             {followUps.length > 0 && (
+               <div className="flex flex-col gap-2.5 mt-1 select-none">
+                 <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider font-heading">Suggested Queries</p>
                 <div className="flex flex-wrap gap-2">
                   {followUps.map((q) => (
                     <button

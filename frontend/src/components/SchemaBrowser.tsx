@@ -1,18 +1,28 @@
 import { useState, useEffect } from "react";
 import type { Dataset, SchemaTable } from "../lib/types";
 import { fetchSchema } from "../lib/api";
-import { Search, Table, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Search, Table, ChevronDown, ChevronRight, Eye, EyeOff, ExternalLink } from "lucide-react";
 
 interface TableCardProps {
   table: SchemaTable;
   searchQuery: string;
 }
 
+const KAGGLE_LINKS: Record<Dataset, { label: string; url: string }> = {
+  chinook: {
+    label: "Chinook Database (Kaggle)",
+    url: "https://www.kaggle.com/datasets/kamilpytlak/chinook-sqlite-database"
+  },
+  imdb: {
+    label: "IMDb Movie Dataset (Kaggle)",
+    url: "https://www.kaggle.com/datasets/ashirwadsangwan/imdb-dataset"
+  }
+};
+
 // Helper to highlight matched search terms
 function HighlightedText({ text, highlight }: { text: string; highlight: string }) {
   if (!highlight.trim()) return <span className="font-mono">{text}</span>;
   
-  // Use new RegExp with string double escaping to satisfy ESLint
   const escaped = highlight.replace(new RegExp("[-/\\\\^$*+?.()|[\\]{}]", "g"), "\\$&");
   const regex = new RegExp(`(${escaped})`, "gi");
   const parts = text.split(regex);
@@ -32,7 +42,6 @@ function HighlightedText({ text, highlight }: { text: string; highlight: string 
 }
 
 function TableCard({ table, searchQuery }: TableCardProps) {
-  // open starts as true if search query is active and matches columns or table name
   const isMatched = searchQuery.trim() !== "" && (
     table.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     table.columns.some(col => col.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -191,12 +200,12 @@ export default function SchemaBrowser({ dataset }: Props) {
   });
 
   return (
-    <div className="flex flex-col h-full bg-[#0f1015] border-r border-white/10 w-full md:w-80 lg:w-96">
+    <div className="flex flex-col h-full bg-[#0f1015] border-r border-white/10 w-full md:w-80 lg:w-96 select-none">
       {/* Sidebar Header */}
       <div className="px-4 py-3.5 border-b border-white/10 bg-[#0f1015] flex flex-col gap-3">
         <div className="flex items-center gap-2 text-white/70">
           <Table className="w-4 h-4 text-violet-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Database Schema</span>
+          <span className="text-xs font-bold uppercase tracking-wider font-heading text-white/80">Database Schema</span>
         </div>
         
         {/* Search Bar */}
@@ -207,12 +216,12 @@ export default function SchemaBrowser({ dataset }: Props) {
             placeholder="Search tables & columns..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs pl-9 pr-8 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 transition"
+            className="w-full text-xs pl-9 pr-8 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-violet-500/50 transition font-sans"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-2 text-[10px] text-white/30 hover:text-white/60 bg-white/10 hover:bg-white/15 px-1.5 py-0.5 rounded cursor-pointer transition"
+              className="absolute right-3 top-2 text-[10px] text-white/30 hover:text-white/60 bg-white/10 hover:bg-white/15 px-1.5 py-0.5 rounded cursor-pointer transition font-sans"
             >
               Clear
             </button>
@@ -256,6 +265,20 @@ export default function SchemaBrowser({ dataset }: Props) {
             )}
           </>
         )}
+      </div>
+
+      {/* Sidebar Footer: Data Source */}
+      <div className="px-4 py-3 bg-[#12131a]/60 border-t border-white/10 flex flex-col gap-1 text-[10px] text-white/30 shrink-0">
+        <span className="font-heading font-bold uppercase tracking-wider text-[9px] text-white/40">Dataset Source</span>
+        <a 
+          href={KAGGLE_LINKS[dataset].url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-violet-400 hover:text-violet-300 transition-colors font-medium truncate font-sans"
+        >
+          <span className="truncate">{KAGGLE_LINKS[dataset].label}</span>
+          <ExternalLink className="w-3 h-3 shrink-0" />
+        </a>
       </div>
     </div>
   );

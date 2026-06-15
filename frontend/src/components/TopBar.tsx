@@ -40,13 +40,13 @@ export default function TopBar({
         </button>
 
         {/* Logo */}
-        <div className="flex items-center gap-2 select-none">
+        <div className="flex items-center gap-2.5 select-none">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-indigo-500 text-white shadow-lg shadow-violet-500/20">
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-bold text-white tracking-tight leading-none">QueryPilot</span>
-            <span className="text-[10px] text-white/40 font-mono mt-0.5">NL → SQL AGENT</span>
+            <span className="text-sm font-black font-heading text-white tracking-widest leading-none uppercase">QueryPilot</span>
+            <span className="text-[9px] text-white/30 font-mono mt-0.5 tracking-wider">NL → SQL AGENT</span>
           </div>
         </div>
       </div>

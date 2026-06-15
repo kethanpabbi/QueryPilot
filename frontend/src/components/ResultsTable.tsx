@@ -13,9 +13,9 @@ export default function ResultsTable({ rows, rowCount }: Props) {
     <div className="rounded-xl border border-white/10 bg-[#12131a]/40 overflow-hidden flex flex-col">
       {/* Table Header / Meta info */}
       <div className="px-4 py-2 bg-[#12131a]/80 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white/60">
+        <div className="flex items-center gap-2 text-white/70">
           <Table className="w-3.5 h-3.5 text-violet-400" />
-          <span className="text-xs font-semibold tracking-wide uppercase select-none">Query Results</span>
+          <span className="text-xs font-bold tracking-wider uppercase select-none font-heading">Query Results</span>
         </div>
         <div className="text-[10px] text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">
           {rowCount} row{rowCount !== 1 ? "s" : ""}
