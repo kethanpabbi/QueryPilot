@@ -11,10 +11,21 @@ export default function App() {
   const [dataset, setDataset] = useState<Dataset>("chinook");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll on new questions or query results
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // Tight scroll tracking during explanation streaming
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.explaining) {
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+    }
   }, [messages]);
 
   const updateMessage = (id: string, patch: Partial<Message>) => {
@@ -82,33 +93,82 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f0f13] text-white">
+    <div className="flex flex-col h-screen bg-[#0b0c10] text-white overflow-hidden">
+      {/* Top Header Navigation */}
       <TopBar
         dataset={dataset}
-        onDatasetChange={(d) => { setDataset(d); setMessages([]); }}
+        onDatasetChange={(d) => {
+          setDataset(d);
+          setMessages([]);
+        }}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onClearChat={() => setMessages([])}
+        hasMessages={messages.length > 0}
       />
 
-      <div className="flex-1 overflow-y-auto">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center pt-16 gap-10">
-            <ExampleChips dataset={dataset} onSelect={handleQuestion} />
+      {/* Main Split-Pane Workspace */}
+      <div className="flex-1 flex flex-row overflow-hidden min-h-0">
+        {/* Left Side: Database Schema Sidebar Browser */}
+        {sidebarOpen && (
+          <div className="shrink-0 h-full hidden sm:block border-r border-white/10">
             <SchemaBrowser dataset={dataset} />
           </div>
-        ) : (
-          <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-8">
-            {messages.map((msg) => (
-              <ResultCard
-                key={msg.id}
-                message={msg}
-                onFollowUp={handleQuestion}
-              />
-            ))}
-            <div ref={bottomRef} />
-          </div>
         )}
+
+        {/* Right Side: Chat & Workspace Pane */}
+        <div className="flex-1 flex flex-col h-full min-w-0 bg-[#0c0d12]">
+          {/* Scrollable Chat History Container */}
+          <div className="flex-grow overflow-y-auto flex flex-col">
+            {messages.length === 0 ? (
+              // Welcome Panel
+              <div className="flex-grow flex items-center justify-center p-6 sm:p-8">
+                <ExampleChips dataset={dataset} onSelect={handleQuestion} />
+              </div>
+            ) : (
+              // Chat conversation log
+              <div className="p-4 sm:p-6 md:p-8 flex-1">
+                <div className="max-w-3xl mx-auto flex flex-col gap-8">
+                  {messages.map((msg) => (
+                    <ResultCard
+                      key={msg.id}
+                      message={msg}
+                      onFollowUp={handleQuestion}
+                    />
+                  ))}
+                  <div ref={bottomRef} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Chat Prompt Input bar */}
+          <InputBar onSubmit={handleQuestion} disabled={busy} />
+        </div>
       </div>
 
-      <InputBar onSubmit={handleQuestion} disabled={busy} />
+      {/* Mobile-Drawer Overlay style (on mobile screens schema browser is hidden unless toggle is pushed) */}
+      {sidebarOpen && (
+        <div className="sm:hidden fixed inset-0 z-40 flex">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setSidebarOpen(false)}
+          />
+          {/* Sidebar content drawer */}
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#0f1015] h-full shadow-2xl animate-in slide-in-from-left duration-200">
+            <div className="absolute top-3 right-3 z-50">
+              <button 
+                onClick={() => setSidebarOpen(false)}
+                className="p-1.5 rounded-lg border border-white/10 text-white/50 hover:text-white bg-white/5 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <SchemaBrowser dataset={dataset} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
