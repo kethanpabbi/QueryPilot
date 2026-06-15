@@ -12,12 +12,14 @@ E-commerce: single remote CSV registered as a lazy DuckDB view via httpfs.
 import os
 import sqlite3
 import tempfile
+import threading
 import urllib.request
 
 import duckdb
 import pandas as pd
 
 _conn: duckdb.DuckDBPyConnection | None = None
+_lock = threading.Lock()  # DuckDB in-memory connections are not thread-safe
 
 CHINOOK_SQLITE_URL = (
     "https://github.com/lerocha/chinook-database/raw/master/"
@@ -87,12 +89,13 @@ def load_dataset(dataset: str) -> None:
 
 def ensure_loaded(dataset: str) -> None:
     """Load the dataset only if its primary table/view doesn't exist yet."""
-    conn = get_connection()
-    primary = DATASET_VIEWS[dataset][0]
-    exists = conn.execute(
-        "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
-        [primary],
-    ).fetchone()[0]
+    with _lock:
+        conn = get_connection()
+        primary = DATASET_VIEWS[dataset][0]
+        exists = conn.execute(
+            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
+            [primary],
+        ).fetchone()[0]
 
-    if not exists:
-        load_dataset(dataset)
+        if not exists:
+            load_dataset(dataset)

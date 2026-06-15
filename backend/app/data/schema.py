@@ -46,7 +46,8 @@ def inspect(dataset: str) -> list[TableInfo]:
         columns = [ColumnInfo(name=row[1], type=row[2]) for row in cols_raw]
 
         rows_df = conn.execute(f"SELECT * FROM {view_name} LIMIT 3").fetchdf()
-        sample_rows = rows_df.to_dict(orient="records")
+        # Round-trip through JSON to convert NaN/Inf → null (pandas NaN isn't JSON-safe)
+        sample_rows = json.loads(rows_df.to_json(orient="records"))
 
         result.append(TableInfo(name=view_name, columns=columns, sample_rows=sample_rows))
 
