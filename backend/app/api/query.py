@@ -9,7 +9,7 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     question: str = Field(..., description="Plain English question about the dataset")
-    dataset: str = Field(..., description="'nyc_taxi' or 'ecommerce'")
+    dataset: str = Field(..., description="'chinook' or 'ecommerce'")
     model: str = Field("claude", description="'claude' or 'openai'")
 
 

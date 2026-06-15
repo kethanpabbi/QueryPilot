@@ -8,7 +8,7 @@ import ResultCard from "./components/ResultCard";
 import InputBar from "./components/InputBar";
 
 export default function App() {
-  const [dataset, setDataset] = useState<Dataset>("nyc_taxi");
+  const [dataset, setDataset] = useState<Dataset>("chinook");
   const [model, setModel] = useState<Model>("claude");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
