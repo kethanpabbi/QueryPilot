@@ -1,5 +1,4 @@
-export type Dataset = "chinook" | "ecommerce";
-export type Model = "claude" | "openai";
+export type Dataset = "chinook" | "imdb";
 
 export interface QueryResponse {
   question: string;

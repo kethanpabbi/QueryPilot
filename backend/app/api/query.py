@@ -9,8 +9,7 @@ router = APIRouter()
 
 class QueryRequest(BaseModel):
     question: str = Field(..., description="Plain English question about the dataset")
-    dataset: str = Field(..., description="'chinook' or 'ecommerce'")
-    model: str = Field("claude", description="'claude' or 'openai'")
+    dataset: str = Field(..., description="'chinook' or 'imdb'")
 
 
 class QueryResponse(BaseModel):
@@ -19,21 +18,15 @@ class QueryResponse(BaseModel):
     rows: list[dict]
     row_count: int
     error: str | None
-    error_code: str | None  # BLOCKED_STATEMENT | INVALID_TABLE | PARSE_ERROR | None
+    error_code: str | None
 
 
 @router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
-    if req.dataset not in ("chinook", "ecommerce"):
-        raise HTTPException(status_code=400, detail="dataset must be 'chinook' or 'ecommerce'")
-    if req.model not in ("claude", "openai"):
-        raise HTTPException(status_code=400, detail="model must be 'claude' or 'openai'")
+    if req.dataset not in ("chinook", "imdb"):
+        raise HTTPException(status_code=400, detail="dataset must be 'chinook' or 'imdb'")
 
-    result = run_query(
-        question=req.question,
-        dataset=req.dataset,
-        model=req.model,
-    )
+    result = run_query(question=req.question, dataset=req.dataset)
 
     return QueryResponse(
         question=req.question,

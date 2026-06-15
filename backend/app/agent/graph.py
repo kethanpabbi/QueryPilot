@@ -8,11 +8,12 @@ does its work, and returns a dict of fields to update.
 """
 
 from __future__ import annotations
+import json
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 
 from app.data.schema import schema_to_prompt_context
-from app.data.loader import get_connection
+from app.data.loader import get_connection, db_lock
 from app.agent.llm import call_llm
 from app.agent.prompts import SYSTEM_PROMPT, build_user_message
 from app.guardrails.validator import validate
@@ -23,7 +24,6 @@ from app.guardrails.validator import validate
 class AgentState(TypedDict):
     question: str
     dataset: str
-    model: str              # "claude" or "openai"
     schema_context: str
     sql: str
     validation_error: str | None
@@ -40,7 +40,7 @@ def generate_sql(state: AgentState) -> dict:
     system = SYSTEM_PROMPT.format(schema_context=state["schema_context"])
     messages = [{"role": "user", "content": build_user_message(state["question"])}]
 
-    sql = call_llm(model=state["model"], system=system, messages=messages)
+    sql = call_llm(system=system, messages=messages)
 
     # Strip markdown code fences if the model wrapped the SQL anyway
     sql = sql.strip()
@@ -81,9 +81,10 @@ def execute_sql(state: AgentState) -> dict:
         return {"rows": [], "row_count": 0, "error": state["validation_error"]}
 
     try:
-        conn = get_connection()
-        df = conn.execute(state["sql"]).fetchdf()
-        rows = df.to_dict(orient="records")
+        with db_lock:
+            conn = get_connection()
+            df = conn.execute(state["sql"]).fetchdf()
+        rows = json.loads(df.to_json(orient="records"))
         return {"rows": rows, "row_count": len(rows), "error": None}
     except Exception as e:
         return {"rows": [], "row_count": 0, "error": str(e)}
@@ -110,14 +111,13 @@ def build_graph() -> StateGraph:
 sql_agent = build_graph()
 
 
-def run_query(question: str, dataset: str, model: str) -> dict:
+def run_query(question: str, dataset: str) -> dict:
     """Entry point called by the API. Returns the final agent state."""
     schema_context = schema_to_prompt_context(dataset)
 
     initial_state: AgentState = {
         "question": question,
         "dataset": dataset,
-        "model": model,
         "schema_context": schema_context,
         "sql": "",
         "validation_error": None,

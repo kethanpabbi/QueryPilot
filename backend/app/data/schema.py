@@ -9,7 +9,7 @@ Parquet/CSV URL is only fetched once per server session.
 from __future__ import annotations
 import json
 from dataclasses import dataclass, field
-from .loader import get_connection, ensure_loaded, DATASET_VIEWS
+from .loader import get_connection, ensure_loaded, DATASET_VIEWS, db_lock
 
 
 @dataclass
@@ -37,19 +37,21 @@ def inspect(dataset: str) -> list[TableInfo]:
         return _schema_cache[dataset]
 
     ensure_loaded(dataset)
-    conn = get_connection()
-    result: list[TableInfo] = []
 
-    for view_name in DATASET_VIEWS[dataset]:
-        # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
-        cols_raw = conn.execute(f"PRAGMA table_info('{view_name}')").fetchall()
-        columns = [ColumnInfo(name=row[1], type=row[2]) for row in cols_raw]
+    with db_lock:
+        conn = get_connection()
+        result: list[TableInfo] = []
 
-        rows_df = conn.execute(f"SELECT * FROM {view_name} LIMIT 3").fetchdf()
-        # Round-trip through JSON to convert NaN/Inf → null (pandas NaN isn't JSON-safe)
-        sample_rows = json.loads(rows_df.to_json(orient="records"))
+        for view_name in DATASET_VIEWS[dataset]:
+            # PRAGMA table_info returns: cid, name, type, notnull, dflt_value, pk
+            cols_raw = conn.execute(f"PRAGMA table_info('{view_name}')").fetchall()
+            columns = [ColumnInfo(name=row[1], type=row[2]) for row in cols_raw]
 
-        result.append(TableInfo(name=view_name, columns=columns, sample_rows=sample_rows))
+            rows_df = conn.execute(f"SELECT * FROM {view_name} LIMIT 3").fetchdf()
+            # Round-trip through JSON to convert NaN/Inf → null (pandas NaN isn't JSON-safe)
+            sample_rows = json.loads(rows_df.to_json(orient="records"))
+
+            result.append(TableInfo(name=view_name, columns=columns, sample_rows=sample_rows))
 
     _schema_cache[dataset] = result
     return result

@@ -1,4 +1,5 @@
 import type { Dataset } from "../lib/types";
+import { Sparkles, ArrowRight, MessageSquareCode } from "lucide-react";
 
 const EXAMPLES: Record<Dataset, string[]> = {
   chinook: [
@@ -8,12 +9,12 @@ const EXAMPLES: Record<Dataset, string[]> = {
     "Average invoice total by billing country",
     "How many tracks are in each playlist?",
   ],
-  ecommerce: [
-    "How many orders are there in total?",
-    "What is the average order value?",
-    "Top 5 products by revenue",
-    "How many orders were placed each month?",
-    "What percentage of orders were delivered on time?",
+  imdb: [
+    "Top 10 highest rated movies with at least 100k votes",
+    "Which genre has the most movies?",
+    "Average rating by decade",
+    "Longest movies over 3 hours",
+    "Movies from the 1990s rated above 8.0",
   ],
 };
 
@@ -24,24 +25,39 @@ interface Props {
 
 export default function ExampleChips({ dataset, onSelect }: Props) {
   return (
-    <div className="text-center flex flex-col items-center gap-4">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Ask anything about the data</h2>
-        <p className="text-white/40 text-sm">
-          Select a dataset above, then type a question or pick an example
+    <div className="flex flex-col items-center max-w-2xl mx-auto px-4 py-8 select-none">
+      {/* Visual Header / Welcome */}
+      <div className="flex flex-col items-center text-center gap-4 mb-10">
+        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-500 text-white shadow-xl shadow-violet-600/20 mb-2 animate-pulse">
+          <Sparkles className="w-6 h-6" />
+        </div>
+        <h1 className="text-4xl font-black font-heading text-white tracking-tight sm:text-5xl md:text-6xl leading-[1.15]">
+          Query datasets in <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">plain English</span>
+        </h1>
+        <p className="text-white/40 text-sm sm:text-base max-w-lg leading-relaxed font-sans">
+          Ask questions, and QueryPilot will compile SQL, execute it against the database, and explain the findings.
         </p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
-        {EXAMPLES[dataset].map((ex) => (
-          <button
-            key={ex}
-            onClick={() => onSelect(ex)}
-            className="text-sm px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-white/70 hover:bg-violet-500/20 hover:border-violet-500/50 hover:text-white transition cursor-pointer"
-          >
-            {ex}
-          </button>
-        ))}
+      {/* Grid of Examples */}
+      <div className="w-full flex flex-col gap-3.5">
+        <div className="flex items-center gap-2 text-white/30 text-[10px] font-bold uppercase tracking-wider pl-1 font-heading">
+          <MessageSquareCode className="w-3.5 h-3.5 text-violet-400" />
+          <span>Suggested starting queries</span>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2.5 w-full">
+          {EXAMPLES[dataset].map((ex) => (
+            <button
+              key={ex}
+              onClick={() => onSelect(ex)}
+              className="group flex items-center justify-between text-left text-xs px-4 py-3 rounded-xl border border-white/5 bg-[#12131a]/40 text-white/70 hover:text-white hover:bg-[#12131a] hover:border-violet-500/30 transition-all cursor-pointer shadow-sm"
+            >
+              <span className="font-medium group-hover:translate-x-0.5 transition-transform">{ex}</span>
+              <ArrowRight className="w-3.5 h-3.5 text-white/20 group-hover:text-violet-400 transition-colors shrink-0 ml-3" />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

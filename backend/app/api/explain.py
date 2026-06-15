@@ -22,7 +22,6 @@ class ExplainRequest(BaseModel):
     question: str = Field(..., description="The original natural language question")
     sql: str = Field(..., description="The SQL that was executed")
     rows: list[dict] = Field(..., description="The query result rows")
-    model: str = Field("claude", description="'claude' or 'openai'")
 
 
 @router.post("/explain")
@@ -31,21 +30,17 @@ async def explain(req: ExplainRequest):
 
     async def event_generator():
         try:
-            # 1. Stream explanation tokens
             async for token in stream_explanation(
                 question=req.question,
                 sql=req.sql,
                 rows=req.rows,
-                model=req.model,
             ):
                 yield {"event": "token", "data": token}
 
-            # 2. Fetch follow-up questions and send as a single event
             followups = await get_followups(
                 question=req.question,
                 sql=req.sql,
                 rows=req.rows,
-                model=req.model,
             )
             yield {"event": "follow_ups", "data": json.dumps(followups)}
 

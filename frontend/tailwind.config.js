@@ -4,10 +4,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        mono: ["JetBrains Mono", "Fira Code", "monospace"],
+        sans: ["'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
+        heading: ["Outfit", "sans-serif"],
+        mono: ["'JetBrains Mono'", "Fira Code", "monospace"],
       },
     },
   },
   plugins: [require("@tailwindcss/typography")],
 }
+
 
