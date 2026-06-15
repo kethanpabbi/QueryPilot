@@ -279,5 +279,31 @@ OpenAI removed from all layers:
 
 ---
 
-### Phase 7 — Deploy (upcoming)
-Railway (backend) + Vercel (frontend). Parquet files are already committed so no data-build step needed at deploy time. Set `ANTHROPIC_API_KEY` on Railway and `VITE_API_URL` on Vercel.
+### Phase 7 — Deploy ✅
+**Goal:** Ship backend to Railway and frontend to Vercel with zero manual data setup.
+
+**Live:** [query-pilot-psi.vercel.app](https://query-pilot-psi.vercel.app)
+
+**Files added:**
+- `backend/Procfile` — Railway start command: `web: uvicorn main:app --host 0.0.0.0 --port $PORT`
+- `backend/runtime.txt` — pins Python 3.11 for Railway/Nixpacks
+- `backend/requirements.txt` — removed unused `openai` dependency
+
+**Files changed:**
+- `backend/main.py` — CORS `allow_origins` now reads from `ALLOWED_ORIGINS` env var (comma-separated); defaults to `*` for local dev
+- `backend/.env.example` — removed `OPENAI_API_KEY`, documented `ALLOWED_ORIGINS`
+
+**Railway setup:**
+- Root directory: `backend/`
+- Railway reads `Procfile` for the start command; `runtime.txt` for Python version
+- Env vars: `ANTHROPIC_API_KEY`, `ALLOWED_ORIGINS=https://query-pilot-psi.vercel.app`
+- Parquet files are committed to the repo — no data build step at deploy time
+
+**Vercel setup:**
+- Root directory: `frontend/`
+- Env var: `VITE_API_URL=https://querypilot-production.up.railway.app`
+- Vite bakes env vars at build time — redeploy required after any env var change
+
+**Key issues hit:**
+- Railway initially failed (Railpack couldn't detect language) because root directory wasn't set to `backend/` — it saw the monorepo root instead
+- CORS blocked all requests on first deploy — `ALLOWED_ORIGINS` wasn't set on Railway, so the backend was running with the correct middleware but the env var defaulted correctly to `*`; the actual issue was the env var needed to explicitly list the Vercel origin after tightening

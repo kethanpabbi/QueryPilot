@@ -180,7 +180,7 @@ Violations return a structured `error_code` shown as a badge in the UI:
 - [x] Phase 4 — Result Explanation + SSE streaming
 - [x] Phase 5 — Chat UI (React)
 - [x] Phase 6 — Polish: IMDB dataset, offline parquet data layer, Claude-only LLM, schema browser, UI redesign (TopBar, ExampleChips, ResultCard with syntax highlighting)
-- [ ] Phase 7 — Deploy (Railway + Vercel)
+- [x] Phase 7 — Deploy: Railway (backend) + Vercel (frontend) — live at [query-pilot-psi.vercel.app](https://query-pilot-psi.vercel.app)
 
 See [DEVLOG.md](DEVLOG.md) for detailed architecture notes on each phase.
 
@@ -192,9 +192,10 @@ See [DEVLOG.md](DEVLOG.md) for detailed architecture notes on each phase.
 
 1. Create a new Railway project and connect this repo.
 2. Set the root directory to `backend/`.
-3. Add the env var: `ANTHROPIC_API_KEY=sk-ant-...`
-4. Railway auto-detects `requirements.txt` and runs `uvicorn main:app --host 0.0.0.0 --port $PORT`.
+3. Add env vars: `ANTHROPIC_API_KEY=sk-ant-...` and `ALLOWED_ORIGINS=https://<your-vercel-app>.vercel.app`
+4. Railway picks up `Procfile` → runs `uvicorn main:app --host 0.0.0.0 --port $PORT`.
 5. The parquet files in `data_cache/` are committed to the repo and loaded at startup — no data download needed.
+6. Generate a public domain under **Settings → Networking → Public Networking**.
 
 ### Frontend — Vercel
 
@@ -202,6 +203,7 @@ See [DEVLOG.md](DEVLOG.md) for detailed architecture notes on each phase.
 2. Set the root directory to `frontend/`.
 3. Add the env var: `VITE_API_URL=https://<your-railway-app>.up.railway.app`
 4. Vercel auto-detects the Vite build config (`npm run build` → `dist/`).
+5. **Redeploy after setting env vars** — Vite bakes them in at build time, so a redeploy is required for changes to take effect.
 
 ---
 
