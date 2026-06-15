@@ -24,8 +24,8 @@ class QueryResponse(BaseModel):
 
 @router.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest):
-    if req.dataset not in ("nyc_taxi", "ecommerce"):
-        raise HTTPException(status_code=400, detail="dataset must be 'nyc_taxi' or 'ecommerce'")
+    if req.dataset not in ("chinook", "ecommerce"):
+        raise HTTPException(status_code=400, detail="dataset must be 'chinook' or 'ecommerce'")
     if req.model not in ("claude", "openai"):
         raise HTTPException(status_code=400, detail="model must be 'claude' or 'openai'")
 

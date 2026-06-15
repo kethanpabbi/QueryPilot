@@ -30,10 +30,10 @@ def health():
 
 
 @app.get("/schema")
-def get_schema(dataset: str = Query(..., description="'nyc_taxi' or 'ecommerce'")):
+def get_schema(dataset: str = Query(..., description="'chinook' or 'ecommerce'")):
     """Return the schema (columns + sample rows) for the requested dataset."""
-    if dataset not in ("nyc_taxi", "ecommerce"):
-        raise HTTPException(status_code=400, detail="dataset must be 'nyc_taxi' or 'ecommerce'")
+    if dataset not in ("chinook", "ecommerce"):
+        raise HTTPException(status_code=400, detail="dataset must be 'chinook' or 'ecommerce'")
     try:
         tables = inspect(dataset)
         return {
