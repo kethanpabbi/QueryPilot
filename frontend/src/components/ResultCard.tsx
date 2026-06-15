@@ -10,16 +10,24 @@ interface Props {
 }
 
 /**
- * OpenAI sometimes streams bold markers with a space inside the delimiter:
- * "** word **" — CommonMark requires no space after opening **, so this
- * doesn't render as bold. Fix only the ** case; single-* (italic) patterns
- * are left alone because stripping spaces around * removes the whitespace
- * that CommonMark requires before an opening delimiter.
+ * OpenAI tokenizer artifacts that appear in streamed explanation text:
+ *   - Bold delimiters with spaces: "** word **"  (CommonMark won't bold these)
+ *   - Paragraph breaks mid-sentence: "Vendor\n\n2 has the most trips"
+ *   - Spaces in large numbers: "2, 234, 632"  (comma then space then digit)
+ *   - Space before punctuation: "word ,"  "word ."  "38 %"
+ *   - Split hyphenated words: "drop -off"  "real -time"
+ *
+ * Single-* (italic) normalisation is intentionally omitted — stripping the
+ * space before an opening * breaks CommonMark left-flanking delimiter rules.
  */
 function normalizeMarkdown(text: string): string {
   return text
-    .replace(/\*\*\s+/g, "**")   // "** word" → "**word"
-    .replace(/\s+\*\*/g, "**");  // "word **" → "word**"
+    .replace(/\*\*\s+/g, "**")          // "** word"    → "**word"
+    .replace(/\s+\*\*/g, "**")          // "word **"    → "word**"
+    .replace(/\n\n+/g, "\n")            // "Vendor\n\n2" → single newline (no paragraph break)
+    .replace(/(\d),\s+(\d)/g, "$1,$2") // "2, 234"     → "2,234"
+    .replace(/\s+([,\.;:!?%])/g, "$1") // "word ,"     → "word,"  /  "38 %" → "38%"
+    .replace(/(\w)\s+-(\w)/g, "$1-$2"); // "drop -off"  → "drop-off"
 }
 
 export default function ResultCard({ message, onFollowUp }: Props) {
