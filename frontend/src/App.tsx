@@ -93,7 +93,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0b0c10] text-white overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#1a1228] text-[#e6e6fa] overflow-hidden">
       {/* Top Header Navigation */}
       <TopBar
         dataset={dataset}
@@ -117,7 +117,7 @@ export default function App() {
         )}
 
         {/* Right Side: Chat & Workspace Pane */}
-        <div className="flex-1 flex flex-col h-full min-w-0 bg-[#0c0d12]">
+        <div className="flex-1 flex flex-col h-full min-w-0 bg-[#1e1530]">
           {/* Scrollable Chat History Container */}
           <div className="flex-grow overflow-y-auto flex flex-col">
             {messages.length === 0 ? (
@@ -156,7 +156,7 @@ export default function App() {
             onClick={() => setSidebarOpen(false)}
           />
           {/* Sidebar content drawer */}
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#0f1015] h-full shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#231938] h-full shadow-2xl animate-in slide-in-from-left duration-200">
             <div className="absolute top-3 right-3 z-50">
               <button 
                 onClick={() => setSidebarOpen(false)}
