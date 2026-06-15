@@ -8,12 +8,12 @@ const EXAMPLES: Record<Dataset, string[]> = {
     "Average invoice total by billing country",
     "How many tracks are in each playlist?",
   ],
-  ecommerce: [
-    "How many orders are there in total?",
-    "What is the average order value?",
-    "Top 5 products by revenue",
-    "How many orders were placed each month?",
-    "What percentage of orders were delivered on time?",
+  imdb: [
+    "Top 10 highest rated movies with at least 100k votes",
+    "Which genre has the most movies?",
+    "Average rating by decade",
+    "Longest movies over 3 hours",
+    "Movies from the 1990s rated above 8.0",
   ],
 };
 

@@ -9,17 +9,7 @@ interface Props {
   onFollowUp: (q: string) => void;
 }
 
-/**
- * OpenAI tokenizer artifacts that appear in streamed explanation text:
- *   - Bold delimiters with spaces: "** word **"  (CommonMark won't bold these)
- *   - Paragraph breaks mid-sentence: "Vendor\n\n2 has the most trips"
- *   - Spaces in large numbers: "2, 234, 632"  (comma then space then digit)
- *   - Space before punctuation: "word ,"  "word ."  "38 %"
- *   - Split hyphenated words: "drop -off"  "real -time"
- *
- * Single-* (italic) normalisation is intentionally omitted — stripping the
- * space before an opening * breaks CommonMark left-flanking delimiter rules.
- */
+// Normalise LLM tokenizer artifacts in streamed markdown before rendering.
 function normalizeMarkdown(text: string): string {
   return text
     .replace(/\*\*\s+/g, "**")          // "** word"    → "**word"

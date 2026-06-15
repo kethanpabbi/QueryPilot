@@ -1,4 +1,4 @@
-import type { Dataset, Model, QueryResponse, SchemaResponse } from "./types";
+import type { Dataset, QueryResponse, SchemaResponse } from "./types";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -10,13 +10,12 @@ export async function fetchSchema(dataset: Dataset): Promise<SchemaResponse> {
 
 export async function runQuery(
   question: string,
-  dataset: Dataset,
-  model: Model
+  dataset: Dataset
 ): Promise<QueryResponse> {
   const res = await fetch(`${API}/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ question, dataset, model }),
+    body: JSON.stringify({ question, dataset }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Unknown error" }));
@@ -33,7 +32,6 @@ export async function streamExplanation(
   question: string,
   sql: string,
   rows: Record<string, unknown>[],
-  model: Model,
   onToken: (token: string) => void,
   onFollowUps: (questions: string[]) => void,
   onDone: () => void
@@ -44,7 +42,7 @@ export async function streamExplanation(
       "Content-Type": "application/json",
       Accept: "text/event-stream",
     },
-    body: JSON.stringify({ question, sql, rows, model }),
+    body: JSON.stringify({ question, sql, rows }),
   });
 
   if (!res.ok || !res.body) {
@@ -62,15 +60,13 @@ export async function streamExplanation(
 
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
-    buffer = lines.pop() ?? ""; // keep incomplete line in buffer
+    buffer = lines.pop() ?? "";
 
     let currentEvent = "";
     for (const line of lines) {
       if (line.startsWith("event:")) {
         currentEvent = line.slice(6).trim();
       } else if (line.startsWith("data:")) {
-        // Strip only the "data:" prefix + one optional space — do NOT trim the
-        // rest, as leading spaces are part of the streamed token content.
         const data = line.startsWith("data: ") ? line.slice(6) : line.slice(5);
         if (currentEvent === "token") {
           onToken(data);

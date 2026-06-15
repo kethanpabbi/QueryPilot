@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { Dataset, Model, Message } from "./lib/types";
+import type { Dataset, Message } from "./lib/types";
 import { runQuery, streamExplanation } from "./lib/api";
 import TopBar from "./components/TopBar";
 import ExampleChips from "./components/ExampleChips";
@@ -9,12 +9,10 @@ import InputBar from "./components/InputBar";
 
 export default function App() {
   const [dataset, setDataset] = useState<Dataset>("chinook");
-  const [model, setModel] = useState<Model>("claude");
   const [messages, setMessages] = useState<Message[]>([]);
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -43,18 +41,15 @@ export default function App() {
     setMessages((prev) => [...prev, newMessage]);
 
     try {
-      // Step 1: run the SQL agent
-      const result = await runQuery(question, dataset, model);
+      const result = await runQuery(question, dataset);
       updateMessage(id, { result, loading: false });
 
-      // Step 2: only stream explanation if we got actual rows back
       if (result.rows.length > 0 && !result.error) {
         updateMessage(id, { explaining: true });
         await streamExplanation(
           question,
           result.sql,
           result.rows,
-          model,
           (token) => {
             setMessages((prev) =>
               prev.map((m) =>
@@ -90,12 +85,9 @@ export default function App() {
     <div className="flex flex-col h-screen bg-[#0f0f13] text-white">
       <TopBar
         dataset={dataset}
-        model={model}
         onDatasetChange={(d) => { setDataset(d); setMessages([]); }}
-        onModelChange={setModel}
       />
 
-      {/* Chat area */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center pt-16 gap-10">

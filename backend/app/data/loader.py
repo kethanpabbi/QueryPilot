@@ -1,101 +1,80 @@
 """
 DuckDB connection manager and dataset loader.
 
-Chinook: downloads the official SQLite file via urllib, reads each table
-with Python's built-in sqlite3 module (no DuckDB extension required),
-and materialises the data into DuckDB via pandas. The temp file is
-deleted immediately after loading.
+All dataset tables are pre-built as parquet files in backend/data_cache/
+and loaded into an in-memory DuckDB on first access. No network calls at
+runtime — fast startup, reproducible across environments.
 
-E-commerce: single remote CSV registered as a lazy DuckDB view via httpfs.
+To regenerate the parquet files (e.g. after a data refresh):
+    python scripts/build_data.py
 """
 
 import os
-import sqlite3
-import tempfile
 import threading
-import urllib.request
 
 import duckdb
-import pandas as pd
+
+db_lock = threading.Lock()  # exported — all DuckDB callers must hold this
 
 _conn: duckdb.DuckDBPyConnection | None = None
-_lock = threading.Lock()  # DuckDB in-memory connections are not thread-safe
 
-CHINOOK_SQLITE_URL = (
-    "https://github.com/lerocha/chinook-database/raw/master/"
-    "ChinookDatabase/DataSources/Chinook_Sqlite.sqlite"
+# Resolve data_cache relative to this file's location
+_DATA_CACHE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "data_cache")
 )
 
-ECOMMERCE_URL = (
-    "https://raw.githubusercontent.com/datasets/e-commerce-transactions/"
-    "main/data/transactions.csv"
-)
-
-# Exact table names as they appear in the Chinook SQLite schema
 CHINOOK_TABLES: list[str] = [
-    "Album", "Artist", "Customer", "Employee", "Genre",
-    "Invoice", "InvoiceLine", "MediaType", "Playlist",
-    "PlaylistTrack", "Track",
+    "album", "artist", "customer", "employee", "genre",
+    "invoice", "invoiceline", "mediatype", "playlist",
+    "playlisttrack", "track",
 ]
 
-# Which table/view names belong to each dataset key (lowercase)
 DATASET_VIEWS: dict[str, list[str]] = {
-    "chinook": [t.lower() for t in CHINOOK_TABLES],
-    "ecommerce": ["orders"],
+    "chinook": CHINOOK_TABLES,
+    "imdb":    ["movie", "genre"],
 }
 
 
 def get_connection() -> duckdb.DuckDBPyConnection:
-    """Return the shared in-process DuckDB connection, creating it once."""
     global _conn
     if _conn is None:
         _conn = duckdb.connect(":memory:")
-        _conn.execute("INSTALL httpfs; LOAD httpfs;")
     return _conn
 
 
+def _parquet(filename: str) -> str:
+    return os.path.join(_DATA_CACHE, filename)
+
+
 def load_dataset(dataset: str) -> None:
-    """Register dataset tables/views. Safe to call multiple times."""
     conn = get_connection()
 
     if dataset == "chinook":
-        tmp = tempfile.NamedTemporaryFile(suffix=".sqlite", delete=False)
-        tmp.close()
-        try:
-            urllib.request.urlretrieve(CHINOOK_SQLITE_URL, tmp.name)
-            sqlite_conn = sqlite3.connect(tmp.name)
-            for table in CHINOOK_TABLES:
-                df: pd.DataFrame = pd.read_sql(f'SELECT * FROM "{table}"', sqlite_conn)
-                # Register the DataFrame, then materialise as a permanent table
-                conn.register(f"_tmp_{table}", df)
-                conn.execute(
-                    f'CREATE OR REPLACE TABLE {table.lower()} AS '
-                    f'SELECT * FROM "_tmp_{table}"'
-                )
-                conn.unregister(f"_tmp_{table}")
-            sqlite_conn.close()
-        finally:
-            os.unlink(tmp.name)
+        for table in CHINOOK_TABLES:
+            path = _parquet(f"chinook_{table}.parquet")
+            conn.execute(
+                f"CREATE OR REPLACE TABLE {table} AS "
+                f"SELECT * FROM read_parquet('{path}')"
+            )
 
-    elif dataset == "ecommerce":
-        conn.execute(
-            f"CREATE OR REPLACE VIEW orders AS "
-            f"SELECT * FROM read_csv_auto('{ECOMMERCE_URL}', header=True)"
-        )
+    elif dataset == "imdb":
+        for table in ("movie", "genre"):
+            path = _parquet(f"imdb_{table}.parquet")
+            conn.execute(
+                f"CREATE OR REPLACE TABLE {table} AS "
+                f"SELECT * FROM read_parquet('{path}')"
+            )
 
     else:
-        raise ValueError(f"Unknown dataset: '{dataset}'. Choose 'chinook' or 'ecommerce'.")
+        raise ValueError(f"Unknown dataset: '{dataset}'. Choose 'chinook' or 'imdb'.")
 
 
 def ensure_loaded(dataset: str) -> None:
-    """Load the dataset only if its primary table/view doesn't exist yet."""
-    with _lock:
+    """Load the dataset only if its primary table doesn't exist yet."""
+    with db_lock:
         conn = get_connection()
         primary = DATASET_VIEWS[dataset][0]
-        exists = conn.execute(
-            "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
-            [primary],
-        ).fetchone()[0]
-
-        if not exists:
+        try:
+            conn.execute(f"SELECT 1 FROM {primary} LIMIT 0")
+        except Exception:
             load_dataset(dataset)

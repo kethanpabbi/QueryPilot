@@ -1,0 +1,4 @@
+# Raw source files — don't commit, regenerate with scripts/build_data.py
+*.sqlite
+*.tsv.gz
+*.duckdb
