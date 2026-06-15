@@ -1,5 +1,7 @@
 """QueryPilot FastAPI application entry point."""
 
+import os
+
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -12,9 +14,12 @@ from app.api.explain import router as explain_router
 
 app = FastAPI(title="QueryPilot", version="0.1.0")
 
+_origins_env = os.environ.get("ALLOWED_ORIGINS", "*")
+_origins = [o.strip() for o in _origins_env.split(",")] if _origins_env != "*" else ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tightened to Vercel URL on deploy
+    allow_origins=_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
