@@ -4,8 +4,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["'Plus Jakarta Sans'", "system-ui", "-apple-system", "sans-serif"],
-        heading: ["Outfit", "sans-serif"],
+        sans: ["'Open Sans'", "system-ui", "-apple-system", "sans-serif"],
+        heading: ["'Open Sans'", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "Fira Code", "monospace"],
       },
     },
