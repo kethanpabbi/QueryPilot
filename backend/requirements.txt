@@ -8,6 +8,5 @@ python-dotenv==1.0.1
 langgraph==0.2.53
 langchain-core==0.3.25
 anthropic==0.40.0
-openai==1.57.4
 sqlglot==25.29.0
 sse-starlette==2.1.3
