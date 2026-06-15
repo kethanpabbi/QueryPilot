@@ -8,14 +8,16 @@ interface TableCardProps {
   searchQuery: string;
 }
 
-const KAGGLE_LINKS: Record<Dataset, { label: string; url: string }> = {
+const DATASET_SOURCES: Record<Dataset, { label: string; url: string; provider: string }> = {
   chinook: {
-    label: "Chinook Database (Kaggle)",
-    url: "https://www.kaggle.com/datasets/taranarora/chinook-sample-database"
+    label: "Chinook Database (GitHub)",
+    url: "https://github.com/lerocha/chinook-database",
+    provider: "GitHub Source"
   },
   imdb: {
     label: "IMDb Movie Dataset (Kaggle)",
-    url: "https://www.kaggle.com/datasets/ashirwadsangwan/imdb-dataset"
+    url: "https://www.kaggle.com/datasets/ashirwadsangwan/imdb-dataset",
+    provider: "Kaggle Source"
   }
 };
 
@@ -269,14 +271,16 @@ export default function SchemaBrowser({ dataset }: Props) {
 
       {/* Sidebar Footer: Data Source */}
       <div className="px-4 py-3 bg-[#12131a]/60 border-t border-white/10 flex flex-col gap-1 text-[10px] text-white/30 shrink-0">
-        <span className="font-heading font-bold uppercase tracking-wider text-[9px] text-white/40">Dataset Source</span>
+        <span className="font-heading font-bold uppercase tracking-wider text-[9px] text-white/40">
+          {DATASET_SOURCES[dataset].provider}
+        </span>
         <a 
-          href={KAGGLE_LINKS[dataset].url} 
+          href={DATASET_SOURCES[dataset].url} 
           target="_blank" 
           rel="noopener noreferrer"
           className="flex items-center gap-1 text-violet-400 hover:text-violet-300 transition-colors font-medium truncate font-sans"
         >
-          <span className="truncate">{KAGGLE_LINKS[dataset].label}</span>
+          <span className="truncate">{DATASET_SOURCES[dataset].label}</span>
           <ExternalLink className="w-3 h-3 shrink-0" />
         </a>
       </div>
