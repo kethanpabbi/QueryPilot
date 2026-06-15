@@ -1,12 +1,12 @@
 import type { Dataset } from "../lib/types";
 
 const EXAMPLES: Record<Dataset, string[]> = {
-  nyc_taxi: [
-    "What is the average fare amount?",
-    "Top 5 pickup locations by trip count",
-    "Average tip percentage by payment type",
-    "How many trips were taken each hour of the day?",
-    "Which vendor has the most trips?",
+  chinook: [
+    "Which artist has the most albums?",
+    "Top 5 genres by number of tracks",
+    "Which customer has spent the most overall?",
+    "Average invoice total by billing country",
+    "How many tracks are in each playlist?",
   ],
   ecommerce: [
     "How many orders are there in total?",
@@ -24,8 +24,8 @@ interface Props {
 
 export default function ExampleChips({ dataset, onSelect }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center flex-1 gap-6 px-4">
-      <div className="text-center">
+    <div className="text-center flex flex-col items-center gap-4">
+      <div>
         <h2 className="text-2xl font-bold text-white mb-1">Ask anything about the data</h2>
         <p className="text-white/40 text-sm">
           Select a dataset above, then type a question or pick an example

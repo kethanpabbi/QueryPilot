@@ -8,7 +8,7 @@ interface Props {
 }
 
 const DATASETS: { value: Dataset; label: string }[] = [
-  { value: "nyc_taxi", label: "🚕 NYC Taxi" },
+  { value: "chinook", label: "🎵 Chinook" },
   { value: "ecommerce", label: "🛒 E-commerce" },
 ];
 

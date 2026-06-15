@@ -3,6 +3,7 @@ import type { Dataset, Model, Message } from "./lib/types";
 import { runQuery, streamExplanation } from "./lib/api";
 import TopBar from "./components/TopBar";
 import ExampleChips from "./components/ExampleChips";
+import SchemaBrowser from "./components/SchemaBrowser";
 import ResultCard from "./components/ResultCard";
 import InputBar from "./components/InputBar";
 
@@ -97,7 +98,10 @@ export default function App() {
       {/* Chat area */}
       <div className="flex-1 overflow-y-auto">
         {messages.length === 0 ? (
-          <ExampleChips dataset={dataset} onSelect={handleQuestion} />
+          <div className="flex flex-col items-center pt-16 gap-10">
+            <ExampleChips dataset={dataset} onSelect={handleQuestion} />
+            <SchemaBrowser dataset={dataset} />
+          </div>
         ) : (
           <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-8">
             {messages.map((msg) => (
