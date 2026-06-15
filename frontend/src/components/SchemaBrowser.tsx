@@ -11,7 +11,7 @@ interface TableCardProps {
 const KAGGLE_LINKS: Record<Dataset, { label: string; url: string }> = {
   chinook: {
     label: "Chinook Database (Kaggle)",
-    url: "https://www.kaggle.com/datasets/kamilpytlak/chinook-sqlite-database"
+    url: "https://www.kaggle.com/datasets/taranarora/chinook-sample-database"
   },
   imdb: {
     label: "IMDb Movie Dataset (Kaggle)",
