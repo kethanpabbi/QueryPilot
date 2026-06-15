@@ -53,7 +53,7 @@ function TableCard({ table, searchQuery }: TableCardProps) {
   const [showSample, setShowSample] = useState(false);
 
   return (
-    <div className="rounded-xl border border-white/5 bg-[#12131a]/60 hover:bg-[#12131a] transition-all overflow-hidden">
+    <div className="shrink-0 rounded-xl border border-white/5 bg-[#12131a]/60 hover:bg-[#12131a] transition-all overflow-hidden">
       {/* Header row */}
       <button
         onClick={() => setOpen((v) => !v)}
