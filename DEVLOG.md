@@ -12,8 +12,8 @@ Natural-language-to-SQL agent. Ask questions in plain English, get SQL + results
 | Backend | FastAPI + LangGraph | Railway |
 | SQL Engine | DuckDB (in-process) | — |
 | SQL Validation | SQLGlot (AST-based) | — |
-| LLMs | Claude (Anthropic) + OpenAI, switchable | — |
-| Datasets | NYC Taxi (Parquet) + E-commerce (CSV) | — |
+| LLM | Claude `claude-haiku-4-5-20251001` (Anthropic only) | — |
+| Datasets | Chinook music store (11 tables) + IMDB top 20k movies | — |
 
 ---
 
@@ -229,42 +229,55 @@ cd frontend && npm run dev
 # Open http://localhost:5173
 ```
 
-### Phase 6 — Polish: Error UX + Markdown Rendering ✅
-**Goal:** Fix two user-facing bugs surfaced during real query testing.
+### Phase 6 — Datasets, Offline Data Layer, Claude-only LLM, UI Redesign ✅
+**Goal:** Replace NYC Taxi + E-commerce with Chinook + IMDB, remove OpenAI entirely, eliminate runtime network dependencies, and redesign key UI components.
 
-#### Bug 1 — Misleading "Parse Error" on unanswerable questions
+#### Offline parquet data layer
 
-When a question requires data not in the schema (e.g. "What are the names of these pickup locations?" against a dataset with only numeric IDs), the model returns prose instead of SQL. This hit the SQLGlot parse step and showed a red "🚫 Parse Error" badge — confusing because no SQL was malformed.
+The original loader fetched remote Parquet/CSV via DuckDB's `httpfs` at query time. This broke in deployed environments where the server process has outbound network restrictions.
 
-**Fix:**
-- System prompt now instructs the model: if the question can't be answered with the available schema, return exactly `-- UNANSWERABLE: <brief reason>`
-- `validator.py` detects the sentinel first (step 0.5), extracts the reason, and returns `error_code="UNANSWERABLE"`
-- Fallback: if the model ignores the instruction and returns prose anyway, the parse-error catch checks the first token — if it's not a SQL keyword, it's treated as `UNANSWERABLE` rather than `PARSE_ERROR`
-- New `EMPTY_SQL` error code was already in the validator; now surfaced in the badge too
+**Fix:** All datasets are pre-built as parquet files and committed to `backend/data_cache/`. The loader reads from disk using `read_parquet()` at startup. Zero network calls at runtime.
 
-**GuardrailBadge now has two visual tiers:**
+- `backend/scripts/build_data.py` — downloads source files and regenerates parquet (run locally to refresh)
+- `backend/data_cache/` — committed parquet files (~1.4 MB total): 11 Chinook tables + IMDB `movie` and `genre`
+- `backend/app/data/loader.py` — completely rewritten: `load_dataset()` reads parquet, `ensure_loaded()` uses try/except existence check, `db_lock` (threading.Lock) exported for all callers
 
-| Error code | Color | Icon | Meaning |
-|---|---|---|---|
-| `BLOCKED_STATEMENT`, `INVALID_TABLE`, `PARSE_ERROR` | Red | 🚫 | Guardrail violation / malformed SQL |
-| `UNANSWERABLE`, `EMPTY_SQL` | Amber | ℹ️ | Data not available in schema |
+**Thread safety:** DuckDB in-memory connections are not thread-safe. FastAPI runs sync routes in a thread pool. All `conn.execute()` calls across `loader.py`, `schema.py`, and `graph.py` now hold `db_lock`.
 
-**Files changed:** `backend/app/agent/prompts.py`, `backend/app/guardrails/validator.py`, `frontend/src/components/GuardrailBadge.tsx`
+#### Datasets switched
 
----
+| Old | New |
+|---|---|
+| NYC Taxi (`nyc_taxi`) — 1 table, remote Parquet | Chinook music store — 11 relational tables, parquet |
+| E-commerce (`orders`) — 1 table, remote CSV | IMDB top movies — `movie` (20k rows) + `genre` (44k rows), parquet |
 
-#### Bug 2 — Italic text not rendering in explanations
+IMDB data sourced from official IMDb TSV files; top 20k movies by vote count kept. The Godfather, Star Wars, Shawshank, etc. are all present (ranked by numVotes which correlates to popularity).
 
-`normalizeMarkdown` had four regex patterns meant to fix an OpenAI streaming artifact (`"** word **"` → `"**word**"`). The two single-`*` patterns were too aggressive:
+#### Claude-only LLM
 
-- `/\s+\*/g` removed the space before an opening `*` — e.g. `"text *italic*"` → `"text*italic*"`
-- CommonMark requires whitespace before a left-flanking `*` delimiter, so stripping it prevented italic from rendering entirely
+OpenAI removed from all layers:
+- `backend/app/agent/llm.py` — simplified to call only `anthropic.Anthropic`; no model param
+- `backend/app/agent/explainer.py` — uses only `AsyncAnthropic`; no model param
+- `backend/app/agent/graph.py` — `model` field removed from `AgentState`
+- `backend/app/api/query.py` / `explain.py` — model field removed from request schemas
+- `frontend/src/lib/types.ts` — `Model` type removed entirely
+- `frontend/src/lib/api.ts` — no model param in `runQuery()` or `streamExplanation()`
 
-**Fix:** Removed the single-`*` patterns. Only the `**` patterns are kept (they fix the confirmed OpenAI bold artifact without side effects). Also added explicit `prose-em` and `prose-strong` Tailwind classes so bold/italic are visually distinct on the dark background.
+#### UI redesign
 
-**Files changed:** `frontend/src/components/ResultCard.tsx`
+- **TopBar** — custom dataset dropdown with Database/ChevronDown icons, sidebar toggle (Menu icon), clear-thread button (Trash2, only shown when messages exist); model picker removed
+- **ExampleChips** — list-style layout with Sparkles/ArrowRight icons; IMDB-specific examples (top rated movies, genre breakdown, movies by decade, etc.)
+- **ResultCard** — `HighlightedSql` component for syntax highlighting (keywords=violet, strings=amber, numbers=cyan); copy button for SQL; Terminal icon; redesigned card layout
+- **App.tsx** — split-pane layout: collapsible SchemaBrowser sidebar on left, chat thread on right; mobile overlay drawer
+
+#### Error UX (carried from earlier work)
+
+- `UNANSWERABLE` and `EMPTY_SQL` error codes surface as amber badges (vs red for hard guardrail violations)
+- System prompt instructs model to return `-- UNANSWERABLE: <reason>` instead of prose when schema can't answer the question
+
+**Files changed:** `backend/app/data/loader.py`, `backend/app/data/schema.py`, `backend/app/agent/llm.py`, `backend/app/agent/explainer.py`, `backend/app/agent/graph.py`, `backend/app/api/query.py`, `backend/app/api/explain.py`, `backend/main.py`, `frontend/src/lib/types.ts`, `frontend/src/lib/api.ts`, `frontend/src/App.tsx`, `frontend/src/components/TopBar.tsx`, `frontend/src/components/ExampleChips.tsx`, `frontend/src/components/ResultCard.tsx`
 
 ---
 
 ### Phase 7 — Deploy (upcoming)
-Railway Dockerfile + Vercel config, README.
+Railway (backend) + Vercel (frontend). Parquet files are already committed so no data-build step needed at deploy time. Set `ANTHROPIC_API_KEY` on Railway and `VITE_API_URL` on Vercel.

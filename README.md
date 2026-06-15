@@ -8,13 +8,13 @@ QueryPilot is a natural-language-to-SQL agent that lets you query real datasets 
 
 ## Features
 
-- **Natural language → SQL** — powered by Claude or GPT-4o, switchable from the UI
+- **Natural language → SQL** — powered by Claude (Anthropic)
 - **AST-based guardrails** — SQLGlot parses every query before it hits the database; blocks `DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `TRUNCATE`, `CREATE`; enforces `LIMIT 500`; rejects tables outside the active dataset
 - **Stateful LangGraph agent** — `generate_sql → validate_sql → execute_sql`
-- **Streamed explanation** — second LLM call after execution explains results in plain English token-by-token via SSE, then suggests 3 follow-up questions
-- **Chat interface** — full conversation thread with SQL toggle, results table, guardrail badges, and clickable follow-up chips
-- **Two real datasets** — Chinook music store (11 tables, SQLite) and E-commerce (CSV), switchable from the top bar
-- **Schema browser** — expand any table to inspect columns and sample rows before querying
+- **Streamed explanation** — LLM explains results in plain English token-by-token via SSE, then suggests 3 follow-up questions
+- **Two real datasets** — Chinook music store (11 relational tables) and IMDB top 20k movies, switchable from the UI
+- **Schema browser** — collapsible sidebar showing columns and sample rows for every table
+- **Offline data layer** — datasets are pre-built as parquet files (1.4 MB total), loaded into DuckDB at startup — no network calls at runtime
 
 ---
 
@@ -26,7 +26,7 @@ QueryPilot is a natural-language-to-SQL agent that lets you query real datasets 
 | Backend | FastAPI + LangGraph |
 | SQL Engine | DuckDB (in-process, no server) |
 | SQL Validation | SQLGlot (AST-based) |
-| LLMs | Claude `claude-haiku-4-5-20251001` + OpenAI `gpt-5.4-mini` |
+| LLM | Claude `claude-haiku-4-5-20251001` (Anthropic) |
 | Deploy | Vercel (frontend) + Railway (backend) |
 
 ---
@@ -38,30 +38,33 @@ QueryPilot/
 ├── backend/
 │   ├── app/
 │   │   ├── data/
-│   │   │   ├── loader.py       # DuckDB connection + lazy dataset views
+│   │   │   ├── loader.py       # DuckDB connection + parquet-based dataset loading
 │   │   │   └── schema.py       # SchemaInspector → LLM prompt context
 │   │   ├── guardrails/
 │   │   │   └── validator.py    # SQLGlot AST: blocked stmts, table scope, LIMIT
 │   │   ├── agent/
-│   │   │   ├── llm.py          # Provider-agnostic wrapper (Claude / OpenAI)
+│   │   │   ├── llm.py          # Claude wrapper
 │   │   │   ├── prompts.py      # System prompt templates
 │   │   │   ├── graph.py        # LangGraph StateGraph
 │   │   │   └── explainer.py    # Async streaming explanation + follow-ups
 │   │   └── api/
 │   │       ├── query.py        # POST /query
 │   │       └── explain.py      # POST /explain (SSE)
+│   ├── data_cache/             # Pre-built parquet files (committed, ~1.4 MB)
+│   ├── scripts/
+│   │   └── build_data.py       # Re-generates parquet files (run to refresh data)
 │   ├── main.py
 │   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── TopBar.tsx         # Dataset + model pickers
-│       │   ├── ExampleChips.tsx   # Clickable prompt examples
-│       │   ├── SchemaBrowser.tsx  # Accordion table/column/sample-row browser
-│       │   ├── ResultCard.tsx     # SQL toggle, table, explanation, follow-ups
+│       │   ├── TopBar.tsx         # Dataset picker + sidebar toggle + clear thread
+│       │   ├── ExampleChips.tsx   # Clickable prompt examples per dataset
+│       │   ├── SchemaBrowser.tsx  # Collapsible schema sidebar
+│       │   ├── ResultCard.tsx     # SQL toggle, results table, explanation, follow-ups
 │       │   ├── ResultsTable.tsx   # Data table
-│       │   ├── GuardrailBadge.tsx # Guardrail error badges
+│       │   ├── GuardrailBadge.tsx # Error badges (red / amber)
 │       │   └── InputBar.tsx       # Chat input
 │       ├── lib/
 │       │   ├── api.ts             # runQuery() + streamExplanation() + fetchSchema()
@@ -79,7 +82,7 @@ QueryPilot/
 
 - Python 3.11+
 - Node.js 18+
-- [Anthropic API key](https://console.anthropic.com/) and/or [OpenAI API key](https://platform.openai.com/)
+- [Anthropic API key](https://console.anthropic.com/)
 
 ### Backend
 
@@ -91,11 +94,8 @@ pip install -r requirements.txt
 cp .env.example .env
 # Add your API keys to .env
 
-make dev
+uvicorn main:app --reload
 # Running at http://localhost:8000
-
-# Or directly:
-uvicorn main:app
 ```
 
 ### Frontend
@@ -123,8 +123,7 @@ npm run dev
 ```json
 {
   "question": "Which artist has the most albums?",
-  "dataset": "chinook",
-  "model": "claude"
+  "dataset": "chinook"
 }
 ```
 
@@ -144,12 +143,12 @@ Streams three event types:
 
 ## Datasets
 
-| Dataset | Tables | Source |
-|---|---|---|
-| Chinook | 11 (artist, album, track, genre, invoice, customer, …) | [lerocha/chinook-database](https://github.com/lerocha/chinook-database) SQLite |
-| E-commerce | `orders` | Olist orders dataset (CSV) |
+| Dataset | Tables | Rows | Source |
+|---|---|---|---|
+| Chinook | 11 (artist, album, track, genre, invoice, customer, …) | ~15k total | [lerocha/chinook-database](https://github.com/lerocha/chinook-database) SQLite |
+| IMDB | `movie` (20k), `genre` (44k) | ~64k total | [IMDb datasets](https://developer.imdb.com/non-commercial-datasets/) |
 
-Chinook is downloaded once at first query, materialised into DuckDB memory, and kept for the server session. E-commerce is read remotely via `httpfs`.
+Both datasets are pre-built as parquet files (~1.4 MB total) committed to the repo and loaded into DuckDB at startup — no network calls at runtime.
 
 ---
 
@@ -161,7 +160,15 @@ Every generated SQL query passes through three checks before DuckDB sees it:
 2. **Table scope** — rejects tables not in the active dataset
 3. **LIMIT enforcer** — injects `LIMIT 500` via AST manipulation if no limit is present
 
-Violations return a structured `error_code` (`BLOCKED_STATEMENT`, `INVALID_TABLE`, `PARSE_ERROR`) shown as a red badge in the UI.
+Violations return a structured `error_code` shown as a badge in the UI:
+
+| `error_code` | Badge color | Meaning |
+|---|---|---|
+| `BLOCKED_STATEMENT` | Red | Destructive/write SQL attempted |
+| `INVALID_TABLE` | Red | Table not in the active dataset |
+| `PARSE_ERROR` | Red | SQL couldn't be parsed |
+| `UNANSWERABLE` | Amber | LLM determined the question can't be answered with this schema |
+| `EMPTY_SQL` | Amber | LLM returned no SQL |
 
 ---
 
@@ -172,10 +179,29 @@ Violations return a structured `error_code` (`BLOCKED_STATEMENT`, `INVALID_TABLE
 - [x] Phase 3 — Guardrails (SQLGlot AST)
 - [x] Phase 4 — Result Explanation + SSE streaming
 - [x] Phase 5 — Chat UI (React)
-- [x] Phase 6 — Polish (error UX, markdown rendering, Chinook dataset, schema browser)
+- [x] Phase 6 — Polish: IMDB dataset, offline parquet data layer, Claude-only LLM, schema browser, UI redesign (TopBar, ExampleChips, ResultCard with syntax highlighting)
 - [ ] Phase 7 — Deploy (Railway + Vercel)
 
 See [DEVLOG.md](DEVLOG.md) for detailed architecture notes on each phase.
+
+---
+
+## Deployment
+
+### Backend — Railway
+
+1. Create a new Railway project and connect this repo.
+2. Set the root directory to `backend/`.
+3. Add the env var: `ANTHROPIC_API_KEY=sk-ant-...`
+4. Railway auto-detects `requirements.txt` and runs `uvicorn main:app --host 0.0.0.0 --port $PORT`.
+5. The parquet files in `data_cache/` are committed to the repo and loaded at startup — no data download needed.
+
+### Frontend — Vercel
+
+1. Create a new Vercel project and connect this repo.
+2. Set the root directory to `frontend/`.
+3. Add the env var: `VITE_API_URL=https://<your-railway-app>.up.railway.app`
+4. Vercel auto-detects the Vite build config (`npm run build` → `dist/`).
 
 ---
 
