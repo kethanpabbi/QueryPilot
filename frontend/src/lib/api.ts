@@ -1,6 +1,12 @@
-import type { Dataset, Model, QueryResponse } from "./types";
+import type { Dataset, Model, QueryResponse, SchemaResponse } from "./types";
 
 const API = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
+export async function fetchSchema(dataset: Dataset): Promise<SchemaResponse> {
+  const res = await fetch(`${API}/schema?dataset=${dataset}`);
+  if (!res.ok) throw new Error("Failed to load schema");
+  return res.json();
+}
 
 export async function runQuery(
   question: string,

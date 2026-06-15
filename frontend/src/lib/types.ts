@@ -1,4 +1,4 @@
-export type Dataset = "nyc_taxi" | "ecommerce";
+export type Dataset = "chinook" | "ecommerce";
 export type Model = "claude" | "openai";
 
 export interface QueryResponse {
@@ -7,7 +7,7 @@ export interface QueryResponse {
   rows: Record<string, unknown>[];
   row_count: number;
   error: string | null;
-  error_code: "BLOCKED_STATEMENT" | "INVALID_TABLE" | "PARSE_ERROR" | null;
+  error_code: "BLOCKED_STATEMENT" | "INVALID_TABLE" | "PARSE_ERROR" | "UNANSWERABLE" | "EMPTY_SQL" | null;
 }
 
 export interface Message {
@@ -18,4 +18,20 @@ export interface Message {
   followUps: string[];
   loading: boolean;
   explaining: boolean;
+}
+
+export interface SchemaColumn {
+  name: string;
+  type: string;
+}
+
+export interface SchemaTable {
+  name: string;
+  columns: SchemaColumn[];
+  sample_rows: Record<string, unknown>[];
+}
+
+export interface SchemaResponse {
+  dataset: string;
+  tables: SchemaTable[];
 }

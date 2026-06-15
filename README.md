@@ -13,7 +13,8 @@ QueryPilot is a natural-language-to-SQL agent that lets you query real datasets 
 - **Stateful LangGraph agent** — `generate_sql → validate_sql → execute_sql`
 - **Streamed explanation** — second LLM call after execution explains results in plain English token-by-token via SSE, then suggests 3 follow-up questions
 - **Chat interface** — full conversation thread with SQL toggle, results table, guardrail badges, and clickable follow-up chips
-- **Two real datasets** — NYC Taxi (Parquet) and E-commerce (CSV), switchable from the top bar
+- **Two real datasets** — Chinook music store (11 tables, SQLite) and E-commerce (CSV), switchable from the top bar
+- **Schema browser** — expand any table to inspect columns and sample rows before querying
 
 ---
 
@@ -55,15 +56,16 @@ QueryPilot/
 ├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── TopBar.tsx       # Dataset + model pickers
-│       │   ├── ExampleChips.tsx # Clickable prompt examples
-│       │   ├── ResultCard.tsx   # SQL toggle, table, explanation, follow-ups
-│       │   ├── ResultsTable.tsx # Data table
-│       │   ├── GuardrailBadge.tsx # Red badge for blocked queries
-│       │   └── InputBar.tsx    # Chat input
+│       │   ├── TopBar.tsx         # Dataset + model pickers
+│       │   ├── ExampleChips.tsx   # Clickable prompt examples
+│       │   ├── SchemaBrowser.tsx  # Accordion table/column/sample-row browser
+│       │   ├── ResultCard.tsx     # SQL toggle, table, explanation, follow-ups
+│       │   ├── ResultsTable.tsx   # Data table
+│       │   ├── GuardrailBadge.tsx # Guardrail error badges
+│       │   └── InputBar.tsx       # Chat input
 │       ├── lib/
-│       │   ├── api.ts           # runQuery() + streamExplanation()
-│       │   └── types.ts         # Shared TypeScript types
+│       │   ├── api.ts             # runQuery() + streamExplanation() + fetchSchema()
+│       │   └── types.ts           # Shared TypeScript types
 │       └── App.tsx
 ├── DEVLOG.md
 └── README.md
@@ -112,7 +114,7 @@ npm run dev
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/health` | Health check |
-| `GET` | `/schema?dataset=nyc_taxi` | Schema + sample rows for a dataset |
+| `GET` | `/schema?dataset=chinook` | Schema + sample rows for a dataset |
 | `POST` | `/query` | Run NL question through the SQL agent |
 | `POST` | `/explain` | Stream explanation + follow-ups via SSE |
 
@@ -120,8 +122,8 @@ npm run dev
 
 ```json
 {
-  "question": "What is the average fare amount?",
-  "dataset": "nyc_taxi",
+  "question": "Which artist has the most albums?",
+  "dataset": "chinook",
   "model": "claude"
 }
 ```
@@ -142,12 +144,12 @@ Streams three event types:
 
 ## Datasets
 
-| Dataset | Table | Source |
+| Dataset | Tables | Source |
 |---|---|---|
-| NYC Taxi | `nyc_taxi` | NYC TLC yellow cab trips, Jan 2024 (Parquet) |
+| Chinook | 11 (artist, album, track, genre, invoice, customer, …) | [lerocha/chinook-database](https://github.com/lerocha/chinook-database) SQLite |
 | E-commerce | `orders` | Olist orders dataset (CSV) |
 
-DuckDB reads these remotely via the `httpfs` extension — nothing is downloaded to disk.
+Chinook is downloaded once at first query, materialised into DuckDB memory, and kept for the server session. E-commerce is read remotely via `httpfs`.
 
 ---
 
@@ -170,7 +172,8 @@ Violations return a structured `error_code` (`BLOCKED_STATEMENT`, `INVALID_TABLE
 - [x] Phase 3 — Guardrails (SQLGlot AST)
 - [x] Phase 4 — Result Explanation + SSE streaming
 - [x] Phase 5 — Chat UI (React)
-- [ ] Phase 6 — Deploy (Railway + Vercel)
+- [x] Phase 6 — Polish (error UX, markdown rendering, Chinook dataset, schema browser)
+- [ ] Phase 7 — Deploy (Railway + Vercel)
 
 See [DEVLOG.md](DEVLOG.md) for detailed architecture notes on each phase.
 
